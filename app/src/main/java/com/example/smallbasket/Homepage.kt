@@ -1,7 +1,11 @@
 package com.example.smallbasket
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -11,18 +15,24 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsetsController
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ImageView
 import android.widget.Toast
 import android.widget.ViewSwitcher
+import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smallbasket.databinding.ActivityHomepageBinding
 import com.example.smallbasket.location.*
@@ -57,14 +67,40 @@ class Homepage : AppCompatActivity() {
     private var currentUserLocation: org.maplibre.android.geometry.LatLng? = null
     private var isLoadingUsers = false
 
-    // Permission launcher
+    // ✅ Correctly defined BroadcastReceiver (only onReceive)
+    private val connectivityReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val connected = intent?.getBooleanExtra("connected", false) ?: false
+            Log.d(TAG, "Connectivity changed: $connected")
+
+            if (connected) {
+                // Refresh user count when connection restored
+                currentUserLocation?.let {
+                    lifecycleScope.launch {
+                        delay(2000) // Wait for backend to update
+                        loadNearbyUsers(it.latitude, it.longitude)
+                    }
+                }
+            } else {
+                // Show 0 when offline
+                runOnUiThread {
+                    binding.tvOnlineUsers.text = "0"
+                }
+            }
+        }
+    }
+
+    // Permission launcher with safety check
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         Log.d(TAG, "Permission result: $permissions")
-        permissionManager.handlePermissionResult(permissions)
+        if (::permissionManager.isInitialized) {
+            permissionManager.handlePermissionResult(permissions)
+        }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -105,6 +141,26 @@ class Homepage : AppCompatActivity() {
             performLightHaptic(binding.root)
             refreshAllData()
         }
+
+        // Click on online users card to show area breakdown (with safety)
+        try {
+            binding.onlineUsersCard.setOnClickListener {
+                performSelectionHaptic(it)
+                showAreaUsersDialog()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "onlineUsersCard not found in layout", e)
+        }
+
+        // Register connectivity receiver with safety
+        try {
+            registerReceiver(
+                connectivityReceiver,
+                IntentFilter("com.example.smallbasket.CONNECTIVITY_CHANGED")
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registering connectivity receiver", e)
+        }
     }
 
     // ===== HAPTIC FEEDBACK SYSTEM =====
@@ -141,80 +197,45 @@ class Homepage : AppCompatActivity() {
         }
     }
 
-    /**
-     * Light haptic - Apple "Impact Light" equivalent
-     * Used for: navigation, taps, secondary actions
-     */
     private fun performLightHaptic(view: View) {
         view.performHapticFeedback(
             HapticFeedbackConstants.CLOCK_TICK,
             HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
         )
-
-        // Additional precise vibration for modern devices
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(10, 40) // 10ms, light amplitude
-            )
+            vibrator.vibrate(VibrationEffect.createOneShot(10, 40))
         }
     }
 
-    /**
-     * Medium haptic - Apple "Impact Medium" equivalent
-     * Used for: bottom nav, selections, confirmations
-     */
     private fun performMediumHaptic(view: View) {
         view.performHapticFeedback(
             HapticFeedbackConstants.CONTEXT_CLICK,
             HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
         )
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(15, 80) // 15ms, medium amplitude
-            )
+            vibrator.vibrate(VibrationEffect.createOneShot(15, 80))
         }
     }
 
-    /**
-     * Emphasized haptic - Apple "Impact Heavy" equivalent
-     * Used for: primary actions, order now button
-     * HIGHER AMPLITUDE than other buttons
-     */
     private fun performEmphasizedHaptic(view: View) {
         view.performHapticFeedback(
             HapticFeedbackConstants.LONG_PRESS,
             HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
         )
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(25, 150) // 25ms, strong amplitude
-            )
+            vibrator.vibrate(VibrationEffect.createOneShot(25, 150))
         }
     }
 
-    /**
-     * Selection haptic - Apple "Selection" equivalent
-     * Used for: card taps, item selections
-     */
     private fun performSelectionHaptic(view: View) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(
-                HapticFeedbackConstants.GESTURE_START,
-                HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-            )
+        val constant = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.GESTURE_START
         } else {
-            view.performHapticFeedback(
-                HapticFeedbackConstants.VIRTUAL_KEY,
-                HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-            )
+            HapticFeedbackConstants.VIRTUAL_KEY
         }
-
+        view.performHapticFeedback(constant, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(8, 50) // 8ms, subtle
-            )
+            vibrator.vibrate(VibrationEffect.createOneShot(8, 50))
         }
     }
 
@@ -222,6 +243,22 @@ class Homepage : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        // Safe check: only access if initialized
+        if (::permissionManager.isInitialized) {
+            if (!permissionManager.hasAllPermissions()) {
+                Log.d(TAG, "Permissions missing on resume, requesting...")
+                requestPermissions()
+            } else if (!LocationUtils.isLocationEnabled(this)) {
+                Log.d(TAG, "Location services disabled, showing dialog...")
+                permissionManager.showLocationServicesDialog()
+            } else if (::connectivityManager.isInitialized) {
+                lifecycleScope.launch {
+                    connectivityManager.forceUpdate()
+                }
+            }
+        }
+
         loadTopTwoRequests()
     }
 
@@ -243,7 +280,7 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun checkAndStartTracking() {
-        Log.d(TAG, "=== Checking Permissions ===")
+        if (!::permissionManager.isInitialized) return
 
         val hasPermissions = permissionManager.hasAllPermissions()
         val locationEnabled = LocationUtils.isLocationEnabled(this)
@@ -267,6 +304,8 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun requestPermissions() {
+        if (!::permissionManager.isInitialized) return
+
         permissionManager.requestPermissions { granted ->
             Log.d(TAG, "Permission granted: $granted")
             if (granted && LocationUtils.isLocationEnabled(this)) {
@@ -278,7 +317,7 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun startLocationTracking() {
-        Log.i(TAG, "=== Starting Location Tracking ===")
+        if (!::locationCoordinator.isInitialized || !::connectivityManager.isInitialized) return
 
         lifecycleScope.launch {
             try {
@@ -340,6 +379,11 @@ class Homepage : AppCompatActivity() {
         }
 
         Log.d(TAG, "=== MANUAL REFRESH TRIGGERED ===")
+
+        if (!::locationCoordinator.isInitialized) {
+            refreshLayout.isRefreshing = false
+            return
+        }
 
         lifecycleScope.launch {
             try {
@@ -425,6 +469,70 @@ class Homepage : AppCompatActivity() {
         }
     }
 
+    private fun showAreaUsersDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_area_users, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.rvAreaUsers)
+        val btnClose = dialogView.findViewById<Button>(R.id.btnClose)
+        val loadingText = dialogView.findViewById<TextView>(R.id.tvLoading)
+
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.visibility = View.GONE
+        loadingText.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val areas = getAreaWiseUserCount()
+
+                runOnUiThread {
+                    if (areas.isEmpty()) {
+                        loadingText.text = "No users found in nearby areas"
+                    } else {
+                        loadingText.visibility = View.GONE
+                        recyclerView.visibility = View.VISIBLE
+                        recyclerView.adapter = AreaUserAdapter(areas)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading area data", e)
+                runOnUiThread {
+                    loadingText.text = "Failed to load data"
+                }
+            }
+        }
+
+        btnClose.setOnClickListener {
+            performLightHaptic(it)
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private suspend fun getAreaWiseUserCount(): List<Pair<String, Int>> {
+        val lat = currentUserLocation?.latitude ?: return emptyList()
+        val lng = currentUserLocation?.longitude ?: return emptyList()
+
+        return try {
+            val result = mapRepository.getNearbyUsers(lat, lng, 10000.0)
+
+            result.getOrNull()?.users
+                ?.filter { it.isReachable }
+                ?.groupBy { it.currentArea ?: "Unknown" }
+                ?.map { (area, users) -> area to users.size }
+                ?.sortedByDescending { it.second }
+                ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting area-wise count", e)
+            emptyList()
+        }
+    }
+
     private fun loadTopTwoRequests() {
         lifecycleScope.launch {
             val result = orderRepository.getAllOrders(status = "open")
@@ -479,24 +587,17 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun setupCustomBottomNav() {
-        // Home - already active, lighter feedback
         binding.navHome.setOnClickListener {
             performLightHaptic(it)
         }
-
-        // Browse - medium haptic for navigation
         binding.navBrowse.setOnClickListener {
             performMediumHaptic(it)
             startActivity(Intent(this, RequestActivity::class.java))
         }
-
-        // Activity - medium haptic
         binding.navActivity.setOnClickListener {
             performMediumHaptic(it)
             startActivity(Intent(this, MyLogsActivity::class.java))
         }
-
-        // Profile - medium haptic
         binding.navProfile.setOnClickListener {
             performMediumHaptic(it)
             startActivity(Intent(this, ProfileActivity::class.java))
@@ -592,7 +693,7 @@ class Homepage : AppCompatActivity() {
 
         val viewLink = cardView.findViewById<TextView>(R.id.tvViewDetail)
         val clickHandler = View.OnClickListener {
-            performSelectionHaptic(it) // Selection haptic for card taps
+            performSelectionHaptic(it)
             navigateToDetailFromHome(request)
         }
         viewLink.setOnClickListener(clickHandler)
@@ -631,8 +732,39 @@ class Homepage : AppCompatActivity() {
         val rewardPercentage: Int
     )
 
+    private class AreaUserAdapter(private val areas: List<Pair<String, Int>>) :
+        RecyclerView.Adapter<AreaUserAdapter.ViewHolder>() {
+
+        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val areaName: TextView = view.findViewById(R.id.tvAreaName)
+            val userCount: TextView = view.findViewById(R.id.tvUserCount)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_area_user, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val (area, count) = areas[position]
+            holder.areaName.text = area
+            holder.userCount.text = count.toString()
+        }
+
+        override fun getItemCount() = areas.size
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+
+        // ✅ Proper cleanup in Activity's onDestroy
+        try {
+            unregisterReceiver(connectivityReceiver)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unregistering connectivity receiver", e)
+        }
+
         if (::connectivityManager.isInitialized) {
             connectivityManager.stopMonitoring()
         }

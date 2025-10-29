@@ -38,8 +38,8 @@ data class Order(
     @SerializedName("poster_email") val posterEmail: String,
     @SerializedName("accepted_by") val delivererId: String? = null,
     @SerializedName("acceptor_email") val acceptorEmail: String? = null,
-    @SerializedName("acceptor_name") val acceptorName: String? = null,  // ✅ NEW FIELD
-    @SerializedName("acceptor_phone") val acceptorPhone: String? = null,  // ✅ NEW FIELD
+    @SerializedName("acceptor_name") val acceptorName: String? = null,
+    @SerializedName("acceptor_phone") val acceptorPhone: String? = null,
     @SerializedName("item") val items: List<String>,
     @SerializedName("pickup_location") val pickupLocation: String,
     @SerializedName("pickup_area") val pickupArea: String,
@@ -87,12 +87,13 @@ data class UserProfileResponse(
 )
 
 // ============================================
-// CONNECTIVITY MODELS
+// CONNECTIVITY MODELS (UPDATED)
 // ============================================
 
 data class ConnectivityUpdateRequest(
     @SerializedName("is_connected") val isConnected: Boolean,
-    @SerializedName("location_permission_granted") val locationPermissionGranted: Boolean
+    @SerializedName("location_permission_granted") val locationPermissionGranted: Boolean,
+    @SerializedName("device_id") val deviceId: String? = null  // ✅ NEW FIELD
 )
 
 // ============================================

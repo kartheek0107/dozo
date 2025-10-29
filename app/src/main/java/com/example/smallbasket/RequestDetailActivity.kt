@@ -260,7 +260,7 @@ class RequestDetailActivity : AppCompatActivity() {
 
         // Set acceptor name (or fallback to email if name is null)
         acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorName)?.text =
-            name ?: "Name not available"
+            name
 
         // Set acceptor email
         acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorEmail)?.text = email
@@ -268,12 +268,12 @@ class RequestDetailActivity : AppCompatActivity() {
         // ✅ Set acceptor phone
         val phoneLayout = acceptorCard.findViewById<LinearLayout>(R.id.layoutAcceptorPhone)
         val phoneTextView = acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorPhone)
-
+        acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorPhone)?.text = phone
         if (!phone.isNullOrEmpty()) {
             phoneLayout?.visibility = View.VISIBLE
             phoneTextView?.text = phone
         } else {
-            phoneLayout?.visibility = View.GONE
+            phoneLayout?.visibility = View.VISIBLE
         }
 
         // Set status badge
