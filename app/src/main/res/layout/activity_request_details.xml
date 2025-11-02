@@ -150,14 +150,14 @@
                             android:layout_marginBottom="4dp" />
 
                         <!-- Posted Time -->
-                        <TextView
-                            android:id="@+id/tvPostedTime"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Posted 15 minutes ago"
-                            android:textColor="#6B7280"
-                            android:textSize="13sp"
-                            android:fontFamily="sans-serif" />
+<!--                        <TextView-->
+<!--                            android:id="@+id/tvPostedTime"-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:text="Posted 15 minutes ago"-->
+<!--                            android:textColor="#6B7280"-->
+<!--                            android:textSize="13sp"-->
+<!--                            android:fontFamily="sans-serif" />-->
                     </LinearLayout>
                 </LinearLayout>
 
@@ -176,13 +176,13 @@
                     android:layout_marginBottom="16dp"
                     android:visibility="gone">
 
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_marginEnd="6dp"
-                        android:src="@drawable/ic_rupee"
-                        app:tint="#D97706"
-                        android:contentDescription="Priority icon" />
+<!--                    <ImageView-->
+<!--                        android:layout_width="14dp"-->
+<!--                        android:layout_height="14dp"-->
+<!--                        android:layout_marginEnd="6dp"-->
+<!--                        android:src="@drawable/ic_rupee"-->
+<!--                        app:tint="#D97706"-->
+<!--                        android:contentDescription="Priority icon" />-->
 
                     <TextView
                         android:id="@+id/tvPriority"
@@ -304,7 +304,7 @@
                         android:layout_height="16dp"
                         android:layout_marginEnd="8dp"
                         android:layout_marginTop="2dp"
-                        android:src="@drawable/ic_rupee"
+                        android:src="@android:drawable/ic_menu_recent_history"
                         app:tint="#6B7280"
                         android:contentDescription="Time icon" />
 

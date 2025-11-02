@@ -78,10 +78,12 @@ class ProfileActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.apply {
                 statusBarColor = Color.TRANSPARENT
+                navigationBarColor = Color.TRANSPARENT // ✅ Make navigation bar transparent
                 @Suppress("DEPRECATION")
                 decorView.systemUiVisibility = (
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION // ✅ Extend layout behind navigation bar
                         )
             }
         }

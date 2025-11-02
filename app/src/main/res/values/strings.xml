@@ -1,6 +1,6 @@
 <!-- res/values/strings.xml -->
 <resources>
-    <string name="app_name">Small Basket</string>
+    <string name="app_name">Dozo</string>
     <string name="no_data">Not Signed In</string>
     <string name="sign_in">Sign In</string>
     <string name="sign_out">Sign Out</string>

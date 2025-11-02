@@ -50,6 +50,7 @@ class OrderActivity : AppCompatActivity() {
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
+        setupSpinners() // ✅ Setup custom spinners
         setupBackButton()
         setupDeadlineButtons()
         setupListeners()
@@ -57,6 +58,29 @@ class OrderActivity : AppCompatActivity() {
 
         // Restore state if coming back from confirmation screen
         restoreState()
+    }
+
+    // ✅ NEW METHOD: Setup custom spinner adapters
+    private fun setupSpinners() {
+        // Setup Pickup Area Spinner
+        val pickupAreas = resources.getStringArray(R.array.pickup_areas)
+        val pickupAdapter = ArrayAdapter(
+            this,
+            R.layout.spinner_item,
+            pickupAreas
+        )
+        pickupAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        binding.pickupArea.adapter = pickupAdapter
+
+        // Setup Drop Area Spinner
+        val dropAreas = resources.getStringArray(R.array.drop_areas)
+        val dropAdapter = ArrayAdapter(
+            this,
+            R.layout.spinner_item,
+            dropAreas
+        )
+        dropAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        binding.dropArea.adapter = dropAdapter
     }
 
     private fun restoreState() {
@@ -82,12 +106,8 @@ class OrderActivity : AppCompatActivity() {
         }
 
         if (pickupArea != null) {
-            val pickupAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.pickup_areas,
-                android.R.layout.simple_spinner_item
-            )
-            val pickupPosition = pickupAdapter.getPosition(pickupArea)
+            val pickupAreas = resources.getStringArray(R.array.pickup_areas)
+            val pickupPosition = pickupAreas.indexOf(pickupArea)
             if (pickupPosition >= 0) {
                 binding.pickupArea.setSelection(pickupPosition)
             }
@@ -98,12 +118,8 @@ class OrderActivity : AppCompatActivity() {
         }
 
         if (dropArea != null) {
-            val dropAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.drop_areas,
-                android.R.layout.simple_spinner_item
-            )
-            val dropPosition = dropAdapter.getPosition(dropArea)
+            val dropAreas = resources.getStringArray(R.array.drop_areas)
+            val dropPosition = dropAreas.indexOf(dropArea)
             if (dropPosition >= 0) {
                 binding.dropArea.setSelection(dropPosition)
             }
@@ -139,10 +155,12 @@ class OrderActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.apply {
                 statusBarColor = Color.TRANSPARENT
+                navigationBarColor = Color.TRANSPARENT // ✅ Make navigation bar transparent
                 @Suppress("DEPRECATION")
                 decorView.systemUiVisibility = (
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION // ✅ Extend layout behind navigation bar
                         )
             }
         }

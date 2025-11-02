@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.smallbasket.api.RetrofitClient
+import com.example.smallbasket.models.UpdateGPSLocationRequest
 import com.google.firebase.auth.FirebaseAuth
 
 /**
@@ -50,7 +51,7 @@ class LocationSyncWorker(
         return try {
             Log.d(TAG, "Syncing location to backend: ($latitude, $longitude)")
 
-            // Create request body
+            // Create request body using the model from com.example.smallbasket.models
             val request = UpdateGPSLocationRequest(
                 latitude = latitude,
                 longitude = longitude,
@@ -75,11 +76,3 @@ class LocationSyncWorker(
         }
     }
 }
-
-// Request model for updating GPS location
-data class UpdateGPSLocationRequest(
-    val latitude: Double,
-    val longitude: Double,
-    val accuracy: Float? = null,
-    val fastMode: Boolean = true
-)

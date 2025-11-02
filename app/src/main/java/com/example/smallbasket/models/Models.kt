@@ -12,8 +12,9 @@ data class CreateOrderRequest(
     @SerializedName("pickup_area") val pickupArea: String,
     @SerializedName("drop_location") val dropLocation: String,
     @SerializedName("drop_area") val dropArea: String,
+    @SerializedName("reward") val reward: Double? = null,
     @SerializedName("item_price") val itemPrice: Double,
-    @SerializedName("time_requested") val timeRequested: String,
+    @SerializedName("time_requested") val timeRequested: String? = null,
     @SerializedName("deadline") val deadline: String,
     @SerializedName("priority") val priority: Boolean = false,
     @SerializedName("notes") val notes: String? = null
@@ -45,12 +46,12 @@ data class Order(
     @SerializedName("pickup_area") val pickupArea: String,
     @SerializedName("drop_location") val dropLocation: String,
     @SerializedName("drop_area") val dropArea: String,
-    @SerializedName("item_price") val itemPrice: Double,
     @SerializedName("reward") val reward: Double,
+    @SerializedName("item_price") val item_price: Double,  // ✅ CRITICAL FIX
     @SerializedName("time_requested") val bestBefore: String,
     @SerializedName("deadline") val deadline: String,
     @SerializedName("priority") val priorityFlag: Boolean,
-    @SerializedName("status") val status: String,  // "open", "accepted", "completed", "cancelled"
+    @SerializedName("status") val status: String,
     @SerializedName("notes") val notes: String? = null,
     @SerializedName("created_at") val createdAt: String,
     @SerializedName("accepted_at") val acceptedAt: String? = null,
@@ -82,18 +83,28 @@ data class UserProfileResponse(
     @SerializedName("preferred_areas") val preferredAreas: List<String>? = null,
     @SerializedName("current_area") val currentArea: String? = null,
     @SerializedName("is_reachable") val isReachable: Boolean = false,
+    @SerializedName("is_connected") val isConnected: Boolean = false,
+    @SerializedName("location_permission_granted") val locationPermissionGranted: Boolean = false,
+    @SerializedName("device_id") val deviceId: String? = null,
     @SerializedName("created_at") val createdAt: String,
     @SerializedName("last_login") val lastLogin: String
 )
 
 // ============================================
-// CONNECTIVITY MODELS (UPDATED)
+// CONNECTIVITY MODELS (WITH DEVICE TRACKING)
 // ============================================
+
+data class DeviceInfo(
+    @SerializedName("os") val os: String? = null,
+    @SerializedName("model") val model: String? = null,
+    @SerializedName("app_version") val appVersion: String? = null
+)
 
 data class ConnectivityUpdateRequest(
     @SerializedName("is_connected") val isConnected: Boolean,
     @SerializedName("location_permission_granted") val locationPermissionGranted: Boolean,
-    @SerializedName("device_id") val deviceId: String? = null  // ✅ NEW FIELD
+    @SerializedName("device_id") val deviceId: String? = null,
+    @SerializedName("device_info") val deviceInfo: DeviceInfo? = null
 )
 
 // ============================================
@@ -115,6 +126,133 @@ data class PreferredAreasRequest(
 
 data class FCMTokenRequest(
     @SerializedName("fcm_token") val fcmToken: String
+)
+
+// ============================================
+// LOCATION/GPS MODELS
+// ============================================
+
+data class GPSLocation(
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("accuracy") val accuracy: Float? = null,
+    @SerializedName("last_updated") val lastUpdated: String? = null
+)
+
+data class UpdateGPSLocationRequest(
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("accuracy") val accuracy: Float? = null,
+    @SerializedName("fast_mode") val fastMode: Boolean = false
+)
+
+data class UpdateGPSLocationResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String,
+    @SerializedName("fast_mode") val fastMode: Boolean,
+    @SerializedName("data") val data: LocationUpdateData?
+)
+
+data class LocationUpdateData(
+    @SerializedName("primary_area") val primaryArea: String?,
+    @SerializedName("all_matching_areas") val allMatchingAreas: List<String>?,
+    @SerializedName("is_on_edge") val isOnEdge: Boolean?,
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double
+)
+
+data class MyGPSLocationResponse(
+    @SerializedName("has_location") val hasLocation: Boolean,
+    @SerializedName("gps_location") val gpsLocation: GPSLocation?,
+    @SerializedName("primary_area") val primaryArea: String?,
+    @SerializedName("all_matching_areas") val allMatchingAreas: List<String>?,
+    @SerializedName("is_on_edge") val isOnEdge: Boolean?,
+    @SerializedName("nearby_areas") val nearbyAreas: List<String>?
+)
+
+data class NearbyUsersRequest(
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("radius_meters") val radiusMeters: Double
+)
+
+data class NearbyUsersResponse(
+    @SerializedName("total") val total: Int,
+    @SerializedName("users") val users: List<MapUserData>
+)
+
+data class UsersInAreaResponse(
+    @SerializedName("area") val area: String,
+    @SerializedName("total") val total: Int,
+    @SerializedName("include_edge_users") val includeEdgeUsers: Boolean,
+    @SerializedName("users") val users: List<MapUserData>
+)
+
+data class MapUserData(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("display_name") val displayName: String?,
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("primary_area") val primaryArea: String?,
+    @SerializedName("all_matching_areas") val allMatchingAreas: List<String>?,
+    @SerializedName("is_on_edge") val isOnEdge: Boolean?,
+    @SerializedName("distance_meters") val distanceMeters: Double?,
+    @SerializedName("last_updated") val lastUpdated: String?
+)
+
+// ============================================
+// REACHABLE COUNT MODELS (DEVICE TRACKING)
+// ============================================
+
+data class ReachableCountResponse(
+    @SerializedName("count") val count: Int,
+    @SerializedName("counting_method") val countingMethod: String,
+    @SerializedName("area") val area: String,
+    @SerializedName("message") val message: String
+)
+
+data class ReachableByAreaResponse(
+    @SerializedName("area_counts") val areaCounts: Map<String, Int>,
+    @SerializedName("counting_method") val countingMethod: String,
+    @SerializedName("note") val note: String
+)
+
+// ============================================
+// RATING MODELS
+// ============================================
+
+data class CreateRatingRequest(
+    @SerializedName("request_id") val requestId: String,
+    @SerializedName("rating") val rating: Int,
+    @SerializedName("comment") val comment: String? = null
+)
+
+data class UpdateRatingRequest(
+    @SerializedName("rating") val rating: Int,
+    @SerializedName("comment") val comment: String? = null
+)
+
+data class RatingResponse(
+    @SerializedName("rating_id") val ratingId: String,
+    @SerializedName("request_id") val requestId: String,
+    @SerializedName("poster_uid") val posterUid: String,
+    @SerializedName("deliverer_uid") val delivererUid: String,
+    @SerializedName("rating") val rating: Int,
+    @SerializedName("comment") val comment: String?,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("updated_at") val updatedAt: String?
+)
+
+data class RatingStatsResponse(
+    @SerializedName("average_rating") val averageRating: Double,
+    @SerializedName("total_ratings") val totalRatings: Int,
+    @SerializedName("rating_distribution") val ratingDistribution: Map<String, Int>,
+    @SerializedName("rating_badge") val ratingBadge: String?
+)
+
+data class UserRatingsResponse(
+    @SerializedName("stats") val stats: RatingStatsResponse,
+    @SerializedName("ratings") val ratings: List<Map<String, Any>>
 )
 
 // ============================================

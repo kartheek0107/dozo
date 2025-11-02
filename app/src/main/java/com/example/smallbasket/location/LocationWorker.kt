@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.smallbasket.api.RetrofitClient
+import com.example.smallbasket.models.UpdateGPSLocationRequest
 import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority

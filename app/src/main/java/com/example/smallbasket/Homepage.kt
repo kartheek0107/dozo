@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
@@ -42,13 +43,14 @@ import com.example.smallbasket.repository.MapRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import java.util.Calendar
 
 class Homepage : AppCompatActivity() {
 
     companion object {
         private const val TAG = "Homepage"
-        private const val BACKEND_SYNC_DELAY = 3000L // 3 seconds for backend to process location
+        private const val CONNECTIVITY_UPDATE_DELAY = 1500L
     }
 
     private lateinit var auth: FirebaseAuth
@@ -64,33 +66,26 @@ class Homepage : AppCompatActivity() {
     private lateinit var permissionManager: LocationPermissionManager
     private lateinit var connectivityManager: ConnectivityStatusManager
 
-    private var currentUserLocation: org.maplibre.android.geometry.LatLng? = null
     private var isLoadingUsers = false
+    private var deviceId: String = ""
 
-    // ✅ Correctly defined BroadcastReceiver (only onReceive)
     private val connectivityReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val connected = intent?.getBooleanExtra("connected", false) ?: false
-            Log.d(TAG, "Connectivity changed: $connected")
+            Log.d(TAG, "📡 Connectivity changed: $connected")
 
-            if (connected) {
-                // Refresh user count when connection restored
-                currentUserLocation?.let {
-                    lifecycleScope.launch {
-                        delay(2000) // Wait for backend to update
-                        loadNearbyUsers(it.latitude, it.longitude)
-                    }
-                }
-            } else {
-                // Show 0 when offline
+            // ✅ CHANGED: Don't auto-refresh, just log the change
+            if (!connected) {
+                // Only update UI when going offline
                 runOnUiThread {
                     binding.tvOnlineUsers.text = "0"
+                    onlineUsersSwitcher.displayedChild = 1
                 }
             }
+            // When coming online, don't auto-refresh - wait for manual refresh
         }
     }
 
-    // Permission launcher with safety check
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -104,66 +99,117 @@ class Homepage : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setupStatusBar()
-        enableEdgeToEdge()
-
-        auth = FirebaseAuth.getInstance()
-        binding = ActivityHomepageBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Initialize haptic system
-        initializeHaptics()
-
-        // Initialize location tracking
-        initializeLocationTracking()
-
-        // Setup UI
-        binding.tvGreeting.text = getGreeting()
-        binding.tvUserName.text = updateName()
-
-        // Apply haptics to buttons
-        setupButtonHaptics()
-
-        setupCustomBottomNav()
-        setupScrollListener()
-
-        activeRequestsContainer = findViewById(R.id.activeRequestsContainer)
-        onlineUsersSwitcher = findViewById(R.id.onlineUsersSwitcher)
-
-        // Initially show shimmer until location loads
-        onlineUsersSwitcher.displayedChild = 0
-
-        // Load requests
-        loadTopTwoRequests()
-
-        // Pull-to-refresh with haptics
-        binding.root.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh).setOnRefreshListener {
-            performLightHaptic(binding.root)
-            refreshAllData()
-        }
-
-        // Click on online users card to show area breakdown (with safety)
         try {
-            binding.onlineUsersCard.setOnClickListener {
-                performSelectionHaptic(it)
-                showAreaUsersDialog()
+            setupStatusBar()
+            enableEdgeToEdge()
+
+            auth = FirebaseAuth.getInstance()
+            binding = ActivityHomepageBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+
+            deviceId = getUniqueDeviceId()
+            Log.d(TAG, "📱 Device ID: $deviceId")
+
+            initializeHaptics()
+            initializeLocationTracking()
+
+            binding.tvGreeting.text = getGreeting()
+            binding.tvUserName.text = updateName()
+            setupButtonHaptics()
+            setupCustomBottomNav()
+            setupScrollListener()
+
+            activeRequestsContainer = findViewById(R.id.activeRequestsContainer)
+            onlineUsersSwitcher = findViewById(R.id.onlineUsersSwitcher)
+
+            onlineUsersSwitcher.displayedChild = 0
+
+            // ✅ FIX: Load data on startup
+            loadTopTwoRequests()
+
+            // Load online count after a short delay (let connectivity sync first)
+            lifecycleScope.launch {
+                delay(2000) // Wait 2 seconds for connectivity to establish
+                refreshOnlineUserCount()
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "onlineUsersCard not found in layout", e)
-        }
 
-        // Register connectivity receiver with safety
-        try {
-            registerReceiver(
-                connectivityReceiver,
-                IntentFilter("com.example.smallbasket.CONNECTIVITY_CHANGED")
-            )
+            binding.root.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh).setOnRefreshListener {
+                performLightHaptic(binding.root)
+                refreshAllData()
+            }
+
+            try {
+                binding.onlineUsersCard.setOnClickListener {
+                    performSelectionHaptic(it)
+                    showAreaUsersDialog()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "onlineUsersCard not found in layout", e)
+            }
+
+            // ✅ FIX: Android 13+ requires explicit receiver export flag
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(
+                        connectivityReceiver,
+                        IntentFilter("com.example.smallbasket.CONNECTIVITY_CHANGED"),
+                        Context.RECEIVER_NOT_EXPORTED  // Our custom broadcast, not for other apps
+                    )
+                } else {
+                    registerReceiver(
+                        connectivityReceiver,
+                        IntentFilter("com.example.smallbasket.CONNECTIVITY_CHANGED")
+                    )
+                }
+                Log.d(TAG, "✅ Connectivity receiver registered")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error registering connectivity receiver", e)
+            }
+
         } catch (e: Exception) {
-            Log.e(TAG, "Error registering connectivity receiver", e)
+            Log.e(TAG, "❌ FATAL: onCreate crashed", e)
+            Toast.makeText(this, "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
-    // ===== HAPTIC FEEDBACK SYSTEM =====
+    override fun onResume() {
+        super.onResume()
+
+        try {
+            if (::permissionManager.isInitialized) {
+                if (!permissionManager.hasAllPermissions()) {
+                    Log.d(TAG, "⚠️ Permissions missing on resume, requesting...")
+                    requestPermissions()
+                } else if (!LocationUtils.isLocationEnabled(this)) {
+                    Log.d(TAG, "⚠️ Location services disabled, showing dialog...")
+                    permissionManager.showLocationServicesDialog()
+                } else {
+                    // ✅ CHANGED: Only update connectivity, don't auto-refresh count
+                    lifecycleScope.launch {
+                        if (::connectivityManager.isInitialized) {
+                            connectivityManager.forceUpdate()
+                        }
+                    }
+                }
+            }
+
+            loadTopTwoRequests()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onResume", e)
+        }
+    }
+
+    private fun getUniqueDeviceId(): String {
+        return try {
+            Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ANDROID_ID
+            ) ?: "unknown"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting device ID", e)
+            "unknown"
+        }
+    }
 
     private fun initializeHaptics() {
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -176,13 +222,11 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun setupButtonHaptics() {
-        // Profile section - light tap
         binding.profileSection.setOnClickListener {
             performLightHaptic(it)
             startActivity(Intent(this, ProfileActivity::class.java))
         }
 
-        // Order Now button - medium haptic (same as nav bar)
         binding.btnOrderNow.setOnClickListener {
             performMediumHaptic(it)
             val intent = Intent(this, OrderActivity::class.java)
@@ -190,7 +234,6 @@ class Homepage : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Notification - light tap
         binding.notification.setOnClickListener {
             performLightHaptic(it)
             startActivity(Intent(this, NotificationActivity::class.java))
@@ -217,16 +260,6 @@ class Homepage : AppCompatActivity() {
         }
     }
 
-    private fun performEmphasizedHaptic(view: View) {
-        view.performHapticFeedback(
-            HapticFeedbackConstants.LONG_PRESS,
-            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(25, 150))
-        }
-    }
-
     private fun performSelectionHaptic(view: View) {
         val constant = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             HapticFeedbackConstants.GESTURE_START
@@ -239,29 +272,6 @@ class Homepage : AppCompatActivity() {
         }
     }
 
-    // ===== END HAPTIC SYSTEM =====
-
-    override fun onResume() {
-        super.onResume()
-
-        // Safe check: only access if initialized
-        if (::permissionManager.isInitialized) {
-            if (!permissionManager.hasAllPermissions()) {
-                Log.d(TAG, "Permissions missing on resume, requesting...")
-                requestPermissions()
-            } else if (!LocationUtils.isLocationEnabled(this)) {
-                Log.d(TAG, "Location services disabled, showing dialog...")
-                permissionManager.showLocationServicesDialog()
-            } else if (::connectivityManager.isInitialized) {
-                lifecycleScope.launch {
-                    connectivityManager.forceUpdate()
-                }
-            }
-        }
-
-        loadTopTwoRequests()
-    }
-
     private fun initializeLocationTracking() {
         Log.d(TAG, "=== Initializing Location Tracking ===")
 
@@ -271,10 +281,10 @@ class Homepage : AppCompatActivity() {
             permissionManager.setPermissionLauncher(permissionLauncher)
             connectivityManager = ConnectivityStatusManager.getInstance(applicationContext)
 
-            Log.d(TAG, "✓ Location components initialized")
+            Log.d(TAG, "✅ Location components initialized")
             checkAndStartTracking()
         } catch (e: Exception) {
-            Log.e(TAG, "✗ Error initializing location tracking", e)
+            Log.e(TAG, "❌ Error initializing location tracking", e)
             Toast.makeText(this, "Location setup failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
@@ -297,7 +307,7 @@ class Homepage : AppCompatActivity() {
                 permissionManager.showLocationServicesDialog()
             }
             else -> {
-                Log.i(TAG, "✓ Starting tracking")
+                Log.i(TAG, "✅ Starting tracking")
                 startLocationTracking()
             }
         }
@@ -321,45 +331,78 @@ class Homepage : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                Log.i(TAG, "STEP 1: Starting connectivity monitoring...")
+                Log.i(TAG, "STEP 1: Starting connectivity monitoring with device_id...")
                 connectivityManager.startMonitoring()
 
-                Log.i(TAG, "STEP 2: Waiting 3 seconds for connectivity sync...")
-                delay(3000)
+                Log.i(TAG, "STEP 2: Waiting for connectivity sync...")
+                delay(CONNECTIVITY_UPDATE_DELAY)
 
                 Log.i(TAG, "STEP 3: Starting background location tracking...")
                 locationCoordinator.startTracking()
-                Log.d(TAG, "✓ Background tracking started")
+                Log.d(TAG, "✅ Background tracking started")
 
-                Log.i(TAG, "STEP 4: Getting instant location...")
-                val location = locationCoordinator.getInstantLocation()
+                // ✅ CHANGED: Don't auto-refresh on startup
+                // User must manually pull-to-refresh to see online count
 
-                if (location != null) {
-                    Log.d(TAG, "✓ Got instant location: (${location.latitude}, ${location.longitude})")
-                    currentUserLocation = org.maplibre.android.geometry.LatLng(location.latitude, location.longitude)
+//                Toast.makeText(this@Homepage, "Location tracking active ✅", Toast.LENGTH_SHORT).show()
 
-                    Log.d(TAG, "STEP 5: Waiting ${BACKEND_SYNC_DELAY}ms for backend sync...")
-                    delay(BACKEND_SYNC_DELAY)
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error starting tracking", e)
+                Toast.makeText(this@Homepage, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
-                    Log.d(TAG, "STEP 6: Loading nearby users...")
-                    loadNearbyUsers(location.latitude, location.longitude)
+    private fun refreshOnlineUserCount() {
+        if (isLoadingUsers) {
+            Log.d(TAG, "Already loading, skipping")
+            return
+        }
 
-                    Toast.makeText(this@Homepage, "Location tracking active ✓", Toast.LENGTH_SHORT).show()
-                } else {
-                    Log.w(TAG, "Failed to get instant location, trying cached...")
-                    val lastLocation = locationCoordinator.getLastKnownLocation()
+        runOnUiThread {
+            if (onlineUsersSwitcher.displayedChild != 0) {
+                onlineUsersSwitcher.displayedChild = 0
+            }
+        }
 
-                    if (lastLocation != null) {
-                        currentUserLocation = org.maplibre.android.geometry.LatLng(lastLocation.latitude, lastLocation.longitude)
-                        delay(BACKEND_SYNC_DELAY)
-                        loadNearbyUsers(lastLocation.latitude, lastLocation.longitude)
+        isLoadingUsers = true
+        Log.d(TAG, "=== Refreshing Online User Count ===")
+
+        lifecycleScope.launch {
+            try {
+                val result = mapRepository.getReachableUsersCount(countByDevice = true)
+
+                result.onSuccess { count ->
+                    Log.d(TAG, "✅ SUCCESS! $count unique devices online")
+                    runOnUiThread {
+                        binding.tvOnlineUsers.text = count.toString()
+                        onlineUsersSwitcher.displayedChild = 1
+                    }
+
+                    val message = if (count > 0) {
+                        "$count users available"
                     } else {
-                        Toast.makeText(this@Homepage, "Unable to get location", Toast.LENGTH_LONG).show()
+                        "No users online"
+                    }
+                    Toast.makeText(this@Homepage, message, Toast.LENGTH_SHORT).show()
+                }
+
+                result.onFailure { error ->
+                    Log.e(TAG, "❌ FAILED: ${error.message}")
+                    runOnUiThread {
+                        binding.tvOnlineUsers.text = "0"
+                        onlineUsersSwitcher.displayedChild = 1
                     }
                 }
+
             } catch (e: Exception) {
-                Log.e(TAG, "✗ Error starting tracking", e)
-                Toast.makeText(this@Homepage, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e(TAG, "Exception loading count", e)
+                runOnUiThread {
+                    binding.tvOnlineUsers.text = "0"
+                    onlineUsersSwitcher.displayedChild = 1
+                }
+            } finally {
+                isLoadingUsers = false
             }
         }
     }
@@ -374,97 +417,23 @@ class Homepage : AppCompatActivity() {
             return
         }
 
-        runOnUiThread {
-            onlineUsersSwitcher.displayedChild = 0
-        }
-
         Log.d(TAG, "=== MANUAL REFRESH TRIGGERED ===")
-
-        if (!::locationCoordinator.isInitialized) {
-            refreshLayout.isRefreshing = false
-            return
-        }
 
         lifecycleScope.launch {
             try {
-                Log.d(TAG, "Step 1: Getting fresh location...")
-                val freshLocation = locationCoordinator.getInstantLocation()
-
-                if (freshLocation != null) {
-                    Log.d(TAG, "✓ Got fresh location")
-                    currentUserLocation = org.maplibre.android.geometry.LatLng(freshLocation.latitude, freshLocation.longitude)
-
-                    Log.d(TAG, "Step 2: Waiting for backend sync...")
-                    delay(BACKEND_SYNC_DELAY)
-
-                    Log.d(TAG, "Step 3: Loading nearby users...")
-                    loadNearbyUsers(freshLocation.latitude, freshLocation.longitude)
-                    loadTopTwoRequests()
-                } else {
-                    Log.w(TAG, "Could not get fresh location")
-                    Toast.makeText(this@Homepage, "Unable to get location", Toast.LENGTH_SHORT).show()
+                if (::connectivityManager.isInitialized) {
+                    connectivityManager.forceUpdate()
+                    delay(CONNECTIVITY_UPDATE_DELAY)
                 }
+
+                refreshOnlineUserCount()
+                loadTopTwoRequests()
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error during refresh", e)
                 Toast.makeText(this@Homepage, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 refreshLayout.isRefreshing = false
-            }
-        }
-    }
-
-    private fun loadNearbyUsers(latitude: Double, longitude: Double) {
-        if (isLoadingUsers) {
-            Log.d(TAG, "Already loading users")
-            return
-        }
-
-        runOnUiThread {
-            if (onlineUsersSwitcher.displayedChild != 0) {
-                onlineUsersSwitcher.displayedChild = 0
-            }
-        }
-
-        isLoadingUsers = true
-        Log.d(TAG, "=== Loading nearby users ===")
-        Log.d(TAG, "Location: ($latitude, $longitude)")
-
-        lifecycleScope.launch {
-            try {
-                val result = mapRepository.getNearbyUsers(latitude, longitude, 5000.0)
-
-                result.onSuccess { response ->
-                    Log.d(TAG, "✓ SUCCESS! Found ${response.total} users")
-                    runOnUiThread {
-                        binding.tvOnlineUsers.text = response.total.toString()
-                        onlineUsersSwitcher.displayedChild = 1
-                    }
-
-                    val message = if (response.total > 0) {
-                        "Found ${response.total} deliverers nearby"
-                    } else {
-                        "No deliverers found nearby"
-                    }
-                    Toast.makeText(this@Homepage, message, Toast.LENGTH_SHORT).show()
-                }
-
-                result.onFailure { error ->
-                    Log.e(TAG, "✗ FAILED: ${error.message}")
-                    runOnUiThread {
-                        binding.tvOnlineUsers.text = "0"
-                        onlineUsersSwitcher.displayedChild = 1
-                    }
-                    Toast.makeText(this@Homepage, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                }
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception loading users", e)
-                runOnUiThread {
-                    binding.tvOnlineUsers.text = "0"
-                    onlineUsersSwitcher.displayedChild = 1
-                }
-            } finally {
-                isLoadingUsers = false
             }
         }
     }
@@ -478,30 +447,46 @@ class Homepage : AppCompatActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val recyclerView = dialogView.findViewById<RecyclerView>(R.id.rvAreaUsers)
-        val btnClose = dialogView.findViewById<Button>(R.id.btnClose)
+        // ✅ FIX: btnClose is an ImageView, not a Button
+        val btnClose = dialogView.findViewById<ImageView>(R.id.btnClose)
         val loadingText = dialogView.findViewById<TextView>(R.id.tvLoading)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.visibility = View.GONE
         loadingText.visibility = View.VISIBLE
+        loadingText.text = "Loading area data..."
 
         lifecycleScope.launch {
             try {
-                val areas = getAreaWiseUserCount()
+                val result = mapRepository.getReachableUsersByArea(countByDevice = true)
 
-                runOnUiThread {
-                    if (areas.isEmpty()) {
-                        loadingText.text = "No users found in nearby areas"
-                    } else {
-                        loadingText.visibility = View.GONE
-                        recyclerView.visibility = View.VISIBLE
-                        recyclerView.adapter = AreaUserAdapter(areas)
+                result.onSuccess { areaCounts ->
+                    runOnUiThread {
+                        if (areaCounts.isEmpty()) {
+                            loadingText.text = "No users online in any area"
+                        } else {
+                            loadingText.visibility = View.GONE
+                            recyclerView.visibility = View.VISIBLE
+
+                            val areaList = areaCounts.map { it.key to it.value }
+                                .sortedByDescending { it.second }
+
+                            recyclerView.adapter = AreaUserAdapter(areaList)
+                        }
                     }
                 }
+
+                result.onFailure { error ->
+                    Log.e(TAG, "Error loading area data", error)
+                    runOnUiThread {
+                        loadingText.text = "Failed to load data: ${error.message}"
+                    }
+                }
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading area data", e)
+                Log.e(TAG, "Exception loading area data", e)
                 runOnUiThread {
-                    loadingText.text = "Failed to load data"
+                    loadingText.text = "Error: ${e.message}"
                 }
             }
         }
@@ -514,50 +499,37 @@ class Homepage : AppCompatActivity() {
         dialog.show()
     }
 
-    private suspend fun getAreaWiseUserCount(): List<Pair<String, Int>> {
-        val lat = currentUserLocation?.latitude ?: return emptyList()
-        val lng = currentUserLocation?.longitude ?: return emptyList()
-
-        return try {
-            val result = mapRepository.getNearbyUsers(lat, lng, 10000.0)
-
-            result.getOrNull()?.users
-                ?.filter { it.isReachable }
-                ?.groupBy { it.currentArea ?: "Unknown" }
-                ?.map { (area, users) -> area to users.size }
-                ?.sortedByDescending { it.second }
-                ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting area-wise count", e)
-            emptyList()
-        }
-    }
-
     private fun loadTopTwoRequests() {
         lifecycleScope.launch {
-            val result = orderRepository.getAllOrders(status = "open")
-            result.onSuccess { orders ->
-                runOnUiThread {
-                    activeRequestsContainer.removeAllViews()
-                    orders.take(2).forEach { order ->
-                        val request = DeliveryRequest(
-                            orderId = order.id,
-                            title = order.items.joinToString(", "),
-                            pickup = extractLocation(order.pickupLocation, order.pickupArea),
-                            dropoff = extractLocation(order.dropLocation, order.dropArea),
-                            fee = formatFee(order),
-                            time = calculateTimeDisplay(order.deadline),
-                            priority = isPriorityOrder(order.priority),
-                            details = order.notes ?: "",
-                            bestBefore = order.bestBefore,
-                            deadline = order.deadline,
-                            rewardPercentage = extractRewardPercentage(order)
-                        )
-                        val cardView = layoutInflater.inflate(R.layout.item_active_request_card, activeRequestsContainer, false)
-                        bindRequestToCard(cardView, request)
-                        activeRequestsContainer.addView(cardView)
+            try {
+                val result = orderRepository.getAllOrders(status = "open")
+                result.onSuccess { orders ->
+                    runOnUiThread {
+                        activeRequestsContainer.removeAllViews()
+                        orders.take(2).forEach { order ->
+                            // ✅ FIX: Safe null handling
+                            val request = DeliveryRequest(
+                                orderId = order.id,
+                                title = order.items.joinToString(", "),
+                                pickup = extractLocation(order.pickupLocation, order.pickupArea),
+                                dropoff = extractLocation(order.dropLocation, order.dropArea),
+                                fee = formatFee(order),
+                                time = calculateTimeDisplay(order.deadline),
+                                priority = isPriorityOrder(order.priority),
+                                details = order.notes ?: "",
+                                bestBefore = order.bestBefore ?: "",
+                                deadline = order.deadline,
+                                rewardPercentage = extractRewardPercentage(order),
+                                itemPrice = order.item_price ?: 0.0
+                            )
+                            val cardView = layoutInflater.inflate(R.layout.item_active_request_card, activeRequestsContainer, false)
+                            bindRequestToCard(cardView, request)
+                            activeRequestsContainer.addView(cardView)
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading requests", e)
             }
         }
     }
@@ -649,14 +621,16 @@ class Homepage : AppCompatActivity() {
         return when {
             location.isNullOrBlank() && area.isNullOrBlank() -> "Unknown"
             location.isNullOrBlank() -> area!!
-            area.isNullOrBlank() -> location!!
+            area.isNullOrBlank() -> location
             else -> "$location, $area"
         }
     }
 
+    // ✅ CRITICAL FIX: order.reward is NOT nullable in Order model
     private fun extractRewardPercentage(order: Order): Int = try {
-        order.reward?.toInt() ?: 0
+        order.reward.toInt()
     } catch (e: Exception) {
+        Log.e(TAG, "Error extracting reward", e)
         0
     }
 
@@ -714,6 +688,7 @@ class Homepage : AppCompatActivity() {
             putExtra("isImportant", request.priority)
             putExtra("fee", request.fee)
             putExtra("time", request.time)
+            putExtra("item_price", request.itemPrice)
         }
         startActivity(intent)
     }
@@ -727,9 +702,10 @@ class Homepage : AppCompatActivity() {
         val time: String,
         val priority: Boolean,
         val details: String,
-        val bestBefore: String?,
-        val deadline: String?,
-        val rewardPercentage: Int
+        val bestBefore: String,
+        val deadline: String,
+        val rewardPercentage: Int,
+        val itemPrice: Double
     )
 
     private class AreaUserAdapter(private val areas: List<Pair<String, Int>>) :
@@ -758,7 +734,6 @@ class Homepage : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // ✅ Proper cleanup in Activity's onDestroy
         try {
             unregisterReceiver(connectivityReceiver)
         } catch (e: Exception) {

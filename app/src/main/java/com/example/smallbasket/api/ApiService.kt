@@ -1,14 +1,13 @@
 package com.example.smallbasket.api
 
 import com.example.smallbasket.models.*
-import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ApiService {
 
     // ============================================
-    // REQUEST ENDPOINTS (Phase 3 Backend)
+    // REQUEST ENDPOINTS
     // ============================================
 
     @POST("request/create")
@@ -47,7 +46,7 @@ interface ApiService {
     suspend fun getUserProfile(): Response<UserProfileResponse>
 
     // ============================================
-    // CONNECTIVITY ENDPOINTS
+    // CONNECTIVITY ENDPOINTS (WITH DEVICE TRACKING)
     // ============================================
 
     @POST("user/connectivity/update")
@@ -82,8 +81,23 @@ interface ApiService {
     @GET("/")
     suspend fun healthCheck(): Response<Map<String, Any>>
 
+    // ============================================
     // LOCATION/MAP ENDPOINTS
     // ============================================
+
+    /**
+     * Update user's GPS location
+     */
+    @POST("location/update-gps")
+    suspend fun updateGPSLocation(
+        @Body request: UpdateGPSLocationRequest
+    ): Response<UpdateGPSLocationResponse>
+
+    /**
+     * Get user's current GPS location
+     */
+    @GET("location/my-gps")
+    suspend fun getMyGPSLocation(): Response<MyGPSLocationResponse>
 
     /**
      * Get nearby users within specified radius
@@ -94,12 +108,6 @@ interface ApiService {
     ): Response<NearbyUsersResponse>
 
     /**
-     * Get user's current GPS location
-     */
-    @GET("location/my-gps")
-    suspend fun getMyGPSLocation(): Response<MyGPSLocationResponse>
-
-    /**
      * Get all users in a specific area
      */
     @GET("location/users-in-area/{area_name}")
@@ -108,58 +116,88 @@ interface ApiService {
         @Query("include_edge_users") includeEdgeUsers: Boolean = true
     ): Response<UsersInAreaResponse>
 
+    // ============================================
+    // REACHABLE USERS COUNT (WITH DEVICE TRACKING)
+    // ============================================
+
     /**
-     * Update user's GPS location
+     * Get count of reachable users or unique devices
+     *
+     * Example URLs:
+     * - GET /users/reachable-count
+     * - GET /users/reachable-count?area=SBIT
+     * - GET /users/reachable-count?area=SBIT&count_by_device=true
      */
-    @POST("location/update-gps")
-    suspend fun updateGPSLocation(
-        @Body request: com.example.smallbasket.location.UpdateGPSLocationRequest
-    ): Response<UpdateGPSLocationResponse>
+    @GET("users/reachable-count")
+    suspend fun getReachableUsersCount(
+        @Query("area") area: String? = null,
+        @Query("count_by_device") countByDevice: Boolean = true
+    ): Response<ReachableCountResponse>
+
+    /**
+     * Get count of reachable users/devices grouped by all areas
+     *
+     * Example URLs:
+     * - GET /users/reachable-by-area
+     * - GET /users/reachable-by-area?count_by_device=true
+     */
+    @GET("users/reachable-by-area")
+    suspend fun getReachableUsersByArea(
+        @Query("count_by_device") countByDevice: Boolean = true
+    ): Response<ReachableByAreaResponse>
+
+    // ============================================
+    // RATING ENDPOINTS
+    // ============================================
+
+    /**
+     * Create a rating for a completed delivery
+     */
+    @POST("rating/create")
+    suspend fun createRating(@Body request: CreateRatingRequest): Response<RatingResponse>
+
+    /**
+     * Update an existing rating
+     */
+    @PUT("rating/{rating_id}")
+    suspend fun updateRating(
+        @Path("rating_id") ratingId: String,
+        @Body request: UpdateRatingRequest
+    ): Response<RatingResponse>
+
+    /**
+     * Get all ratings received by a user as deliverer
+     */
+    @GET("rating/deliverer/{user_uid}")
+    suspend fun getDelivererRatings(
+        @Path("user_uid") userUid: String
+    ): Response<UserRatingsResponse>
+
+    /**
+     * Get current user's ratings as deliverer
+     */
+    @GET("rating/my-deliverer-ratings")
+    suspend fun getMyDelivererRatings(): Response<UserRatingsResponse>
+
+    /**
+     * Get user's rating summary
+     */
+    @GET("rating/summary/{user_uid}")
+    suspend fun getRatingSummary(
+        @Path("user_uid") userUid: String
+    ): Response<RatingStatsResponse>
+
+    /**
+     * Get current user's rating summary
+     */
+    @GET("rating/my-summary")
+    suspend fun getMyRatingSummary(): Response<RatingStatsResponse>
+
+    /**
+     * Delete a rating
+     */
+    @DELETE("rating/{rating_id}")
+    suspend fun deleteRating(
+        @Path("rating_id") ratingId: String
+    ): Response<SuccessResponse>
 }
-
-data class UpdateGPSLocationResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("message") val message: String,
-    @SerializedName("fast_mode") val fastMode: Boolean,
-    @SerializedName("data") val data: LocationUpdateData?
-)
-
-data class LocationUpdateData(
-    @SerializedName("primary_area") val primaryArea: String?,
-    @SerializedName("all_matching_areas") val allMatchingAreas: List<String>?,
-    @SerializedName("is_on_edge") val isOnEdge: Boolean?,
-    @SerializedName("latitude") val latitude: Double,
-    @SerializedName("longitude") val longitude: Double
-)
-
-// Request model for nearby users
-data class NearbyUsersRequest(
-    @SerializedName("latitude") val latitude: Double,
-    @SerializedName("longitude") val longitude: Double,
-    @SerializedName("radius_meters") val radiusMeters: Double
-)
-
-// Response model for my GPS location
-data class MyGPSLocationResponse(
-    @SerializedName("has_location") val hasLocation: Boolean,
-    @SerializedName("gps_location") val gpsLocation: GPSLocation?,
-    @SerializedName("primary_area") val primaryArea: String?,
-    @SerializedName("all_matching_areas") val allMatchingAreas: List<String>?,
-    @SerializedName("is_on_edge") val isOnEdge: Boolean?,
-    @SerializedName("nearby_areas") val nearbyAreas: List<String>?
-)
-
-data class GPSLocation(
-    @SerializedName("latitude") val latitude: Double,
-    @SerializedName("longitude") val longitude: Double,
-    @SerializedName("accuracy") val accuracy: Float?,
-    @SerializedName("last_updated") val lastUpdated: String?
-)
-
-// Response model for users in area
-data class UsersInAreaResponse(
-    @SerializedName("area") val area: String,
-    @SerializedName("total") val total: Int,
-    @SerializedName("include_edge_users") val includeEdgeUsers: Boolean,
-    @SerializedName("users") val users: List<MapUserData>
-)

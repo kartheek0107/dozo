@@ -3,8 +3,10 @@ package com.example.smallbasket
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.smallbasket.databinding.ActivityMyLogsBinding
@@ -22,11 +24,20 @@ class MyLogsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Make status bar and navigation bar transparent
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+
         binding = ActivityMyLogsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupRecyclerViews()
         setupTabs()
+        setupSwipeRefresh()
         loadMyOrders()
 
         binding.btnBack.setOnClickListener {
@@ -59,13 +70,13 @@ class MyLogsActivity : AppCompatActivity() {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
                     0 -> {
-                        binding.rvMyOrders.visibility = View.VISIBLE
-                        binding.rvMyDeliveries.visibility = View.GONE
+                        binding.swipeRefreshOrders.visibility = View.VISIBLE
+                        binding.swipeRefreshDeliveries.visibility = View.GONE
                         loadMyOrders()
                     }
                     1 -> {
-                        binding.rvMyOrders.visibility = View.GONE
-                        binding.rvMyDeliveries.visibility = View.VISIBLE
+                        binding.swipeRefreshOrders.visibility = View.GONE
+                        binding.swipeRefreshDeliveries.visibility = View.VISIBLE
                         loadMyDeliveries()
                     }
                 }
@@ -74,6 +85,30 @@ class MyLogsActivity : AppCompatActivity() {
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
+    }
+
+    private fun setupSwipeRefresh() {
+        // Setup swipe refresh for My Orders
+        binding.swipeRefreshOrders.setColorSchemeColors(
+            resources.getColor(android.R.color.holo_blue_bright, null),
+            resources.getColor(android.R.color.holo_green_light, null),
+            resources.getColor(android.R.color.holo_orange_light, null),
+            resources.getColor(android.R.color.holo_red_light, null)
+        )
+        binding.swipeRefreshOrders.setOnRefreshListener {
+            loadMyOrders()
+        }
+
+        // Setup swipe refresh for My Deliveries
+        binding.swipeRefreshDeliveries.setColorSchemeColors(
+            resources.getColor(android.R.color.holo_blue_bright, null),
+            resources.getColor(android.R.color.holo_green_light, null),
+            resources.getColor(android.R.color.holo_orange_light, null),
+            resources.getColor(android.R.color.holo_red_light, null)
+        )
+        binding.swipeRefreshDeliveries.setOnRefreshListener {
+            loadMyDeliveries()
+        }
     }
 
     private fun extractLocation(location: String?, area: String?): String {
@@ -87,7 +122,7 @@ class MyLogsActivity : AppCompatActivity() {
 
     private fun extractRewardPercentage(order: Order): Int {
         return try {
-            order.reward?.toInt() ?: 0
+            order.reward.toInt()
         } catch (e: Exception) {
             0
         }
@@ -109,17 +144,15 @@ class MyLogsActivity : AppCompatActivity() {
             putExtra("drop_area", order.dropArea)
             putExtra("details", order.notes ?: "")
             putExtra("priority", if (isPriorityOrder(order.priority)) "emergency" else "normal")
-            putExtra("best_before", order.bestBefore)
+            putExtra("best_before", order.bestBefore ?: "")
             putExtra("deadline", order.deadline)
             putExtra("reward_percentage", extractRewardPercentage(order).toDouble())
             putExtra("isImportant", isPriorityOrder(order.priority))
-            // Only include item_price if it exists
-            order.itemPrice?.let { putExtra("item_price", it) }
+            putExtra("item_price", order.item_price)
             putExtra("status", order.status)
-            // ✅ PASS ACCEPTOR INFO
             putExtra("acceptor_email", order.acceptorEmail)
-            putExtra("acceptor_name", order.acceptorName)  // ✅ NEW
-            putExtra("acceptor_phone", order.acceptorPhone)  // ✅ NEW
+            putExtra("acceptor_name", order.acceptorName)
+            putExtra("acceptor_phone", order.acceptorPhone)
         }
         startActivity(intent)
     }
@@ -139,7 +172,10 @@ class MyLogsActivity : AppCompatActivity() {
     }
 
     private fun loadMyOrders() {
-        binding.progressBar.visibility = View.VISIBLE
+        // Only show progress bar if not refreshing (i.e., initial load)
+        if (!binding.swipeRefreshOrders.isRefreshing) {
+            binding.progressBar.visibility = View.VISIBLE
+        }
         binding.tvEmptyMessage.visibility = View.GONE
 
         lifecycleScope.launch {
@@ -147,6 +183,7 @@ class MyLogsActivity : AppCompatActivity() {
 
             result.onSuccess { orders ->
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefreshOrders.isRefreshing = false
 
                 if (orders.isEmpty()) {
                     binding.tvEmptyMessage.visibility = View.VISIBLE
@@ -161,6 +198,7 @@ class MyLogsActivity : AppCompatActivity() {
 
             result.onFailure { error ->
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefreshOrders.isRefreshing = false
                 binding.tvEmptyMessage.visibility = View.VISIBLE
                 binding.tvEmptyMessage.text = "Error loading orders"
                 binding.rvMyOrders.visibility = View.GONE
@@ -183,6 +221,7 @@ class MyLogsActivity : AppCompatActivity() {
 
             result.onSuccess { orders ->
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefreshDeliveries.isRefreshing = false
 
                 if (orders.isEmpty()) {
                     binding.tvEmptyMessage.visibility = View.VISIBLE
@@ -197,6 +236,7 @@ class MyLogsActivity : AppCompatActivity() {
 
             result.onFailure { error ->
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefreshDeliveries.isRefreshing = false
                 binding.tvEmptyMessage.visibility = View.VISIBLE
                 binding.tvEmptyMessage.text = "Error loading deliveries"
                 binding.rvMyDeliveries.visibility = View.GONE

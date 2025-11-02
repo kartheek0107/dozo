@@ -1,71 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- File: res/layout/dialog_area_users.xml -->
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="24dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="8dp"
-    app:cardBackgroundColor="#FFFFFF">
+    app:cardCornerRadius="20dp"
+    app:cardElevation="12dp"
+    android:backgroundTint="@android:color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="0dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Header with gradient background -->
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Users by Area"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="#111827"
-            android:layout_marginBottom="4dp" />
+            android:background="@drawable/gradient_teal_header"
+            android:padding="20dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Available deliverers in nearby locations"
-            android:textSize="13sp"
-            android:textColor="#6B7280"
-            android:layout_marginBottom="16dp" />
+            <ImageView
+                android:id="@+id/ivHeaderIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_map_pin_amber"
+                android:contentDescription="Location icon"
+                app:tint="@android:color/white" />
 
-        <!-- Loading Text -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/ivHeaderIcon"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Users by Area"
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Active deliverers in each zone"
+                    android:textColor="#E0FFFFFF"
+                    android:textSize="13sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btnClose"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_close"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="4dp"
+                android:contentDescription="Close button"
+                app:tint="@android:color/white" />
+        </RelativeLayout>
+
+        <!-- Loading indicator -->
         <TextView
             android:id="@+id/tvLoading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Loading..."
-            android:textSize="14sp"
-            android:textColor="#6B7280"
+            android:text="Loading area data..."
+            android:textSize="15sp"
+            android:textColor="#666666"
             android:gravity="center"
-            android:padding="32dp"
+            android:padding="40dp"
             android:visibility="visible" />
 
-        <!-- RecyclerView for area list -->
+        <!-- Area list -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvAreaUsers"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxHeight="300dp"
+            android:maxHeight="400dp"
             android:scrollbars="vertical"
+            android:padding="8dp"
+            android:clipToPadding="false"
             android:visibility="gone" />
 
-        <!-- Close Button -->
-        <Button
-            android:id="@+id/btnClose"
+        <!-- Empty state -->
+        <LinearLayout
+            android:id="@+id/layoutEmptyState"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Close"
-            android:textColor="#FFFFFF"
-            android:textAllCaps="false"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:background="@drawable/bg_input_rounded"
-            android:backgroundTint="#14B8A6"
-            android:paddingVertical="14dp"
-            android:layout_marginTop="16dp" />
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_no_users"
+                android:contentDescription="No users icon"
+                app:tint="#CCCCCC" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No users online"
+                android:textSize="16sp"
+                android:textColor="#666666"
+                android:textStyle="bold"
+                android:layout_marginTop="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Check back later for available deliverers"
+                android:textSize="14sp"
+                android:textColor="#999999"
+                android:layout_marginTop="4dp"
+                android:gravity="center" />
+        </LinearLayout>
+
     </LinearLayout>
+
 </androidx.cardview.widget.CardView>

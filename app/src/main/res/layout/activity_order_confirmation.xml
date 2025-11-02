@@ -100,7 +100,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Your Order Items"
+                    android:text="Your Order Details"
                     android:textColor="#6B7280"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -129,6 +129,33 @@
                         android:text="2x Apples"
                         android:textColor="#111827"
                         android:textSize="15sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <!-- Item Price -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Item Price"
+                    android:textColor="#9CA3AF"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="4dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/info_field_bg"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="12dp"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:id="@+id/tvItemPrice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="₹0.00"
+                        android:textColor="#14B8A6"
+                        android:textSize="18sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
 
@@ -249,124 +276,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Price Breakdown Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardPriceBreakdown"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="24dp"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/cardOrderItems">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:text="Price Breakdown"
-                    android:textColor="#6B7280"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <!-- Item Price -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Item Price"
-                    android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:layout_marginBottom="16dp">
-
-                    <TextView
-                        android:id="@+id/tvItemPrice"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="₹0.00"
-                        android:textColor="#111827"
-                        android:textSize="15sp"
-                        android:textStyle="bold"/>
-                </LinearLayout>
-
-                <!-- Delivery Fee -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Delivery Fee (10%)"
-                    android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:layout_marginBottom="16dp">
-
-                    <TextView
-                        android:id="@+id/tvDeliveryFee"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="₹0.00"
-                        android:textColor="#111827"
-                        android:textSize="15sp"
-                        android:textStyle="bold"/>
-                </LinearLayout>
-
-                <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E5E7EB"
-                    android:layout_marginBottom="16dp" />
-
-                <!-- Total Amount - Highlighted -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Total Amount"
-                    android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp">
-
-                    <TextView
-                        android:id="@+id/tvTotalAmount"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="₹0.00"
-                        android:textColor="#14B8A6"
-                        android:textSize="24sp"
-                        android:textStyle="bold"/>
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- Confirm Order Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConfirmOrder"
@@ -384,7 +293,7 @@
             app:cornerRadius="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/cardPriceBreakdown" />
+            app:layout_constraintTop_toBottomOf="@id/cardOrderItems" />
 
         <!-- Back to Edit Button (Outlined) -->
         <com.google.android.material.button.MaterialButton
@@ -406,9 +315,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/btnConfirmOrder" />
-
-        <!-- Footer -->
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

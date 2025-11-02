@@ -3,10 +3,12 @@ package com.example.smallbasket.repository
 
 import android.util.Log
 import com.example.smallbasket.api.RetrofitClient
-import com.example.smallbasket.api.NearbyUsersRequest
-import com.example.smallbasket.api.MyGPSLocationResponse
-import com.example.smallbasket.api.UsersInAreaResponse
+import com.example.smallbasket.models.NearbyUsersRequest
 import com.example.smallbasket.models.NearbyUsersResponse
+import com.example.smallbasket.models.MyGPSLocationResponse
+import com.example.smallbasket.models.UsersInAreaResponse
+import com.example.smallbasket.models.ReachableCountResponse
+import com.example.smallbasket.models.ReachableByAreaResponse
 
 class MapRepository {
     companion object {
@@ -16,7 +18,7 @@ class MapRepository {
     private val api = RetrofitClient.apiService
 
     /**
-     * FIXED: Get nearby users with detailed logging
+     * Get nearby users with detailed logging
      */
     suspend fun getNearbyUsers(
         latitude: Double,
@@ -36,24 +38,25 @@ class MapRepository {
 
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
-                Log.d(TAG, "✓ SUCCESS!")
+                Log.d(TAG, "✅ SUCCESS!")
                 Log.d(TAG, "  Total users found: ${body.total}")
-                Log.d(TAG, "  Users list: ${body.users.map { it.name ?: it.email }}")
+                Log.d(TAG, "  Users list: ${body.users.map { it.displayName ?: it.userId }}")
 
-                // Log each user's details
                 body.users.forEachIndexed { index, user ->
                     Log.d(TAG, "  User $index:")
-                    Log.d(TAG, "    - Name: ${user.name}")
-                    Log.d(TAG, "    - Email: ${user.email}")
+                    Log.d(TAG, "    - Display Name: ${user.displayName}")
+                    Log.d(TAG, "    - User ID: ${user.userId}")
                     Log.d(TAG, "    - Location: (${user.latitude}, ${user.longitude})")
-                    Log.d(TAG, "    - Area: ${user.currentArea}")
-                    Log.d(TAG, "    - Reachable: ${user.isReachable}")
+                    Log.d(TAG, "    - Primary Area: ${user.primaryArea}")
+                    Log.d(TAG, "    - All Areas: ${user.allMatchingAreas}")
+                    Log.d(TAG, "    - Is On Edge: ${user.isOnEdge}")
+                    Log.d(TAG, "    - Distance: ${user.distanceMeters}m")
                 }
 
                 Result.success(body)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
-                Log.e(TAG, "✗ FAILED!")
+                Log.e(TAG, "❌ FAILED!")
                 Log.e(TAG, "  Error code: ${response.code()}")
                 Log.e(TAG, "  Error message: ${response.message()}")
                 Log.e(TAG, "  Error body: $errorMsg")
@@ -61,11 +64,96 @@ class MapRepository {
                 Result.failure(Exception("Error ${response.code()}: $errorMsg"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "✗ EXCEPTION while fetching nearby users", e)
+            Log.e(TAG, "❌ EXCEPTION while fetching nearby users", e)
             Log.e(TAG, "  Exception type: ${e.javaClass.simpleName}")
             Log.e(TAG, "  Exception message: ${e.message}")
             e.printStackTrace()
 
+            Result.failure(Exception("Network error: ${e.message}"))
+        }
+    }
+
+    /**
+     * ✅ OPTIMIZED: Get count of reachable users/devices with performance tracking
+     *
+     * @param area Optional area filter
+     * @param countByDevice If true, counts unique devices instead of users
+     */
+    suspend fun getReachableUsersCount(
+        area: String? = null,
+        countByDevice: Boolean = true
+    ): Result<Int> {
+        val startTime = System.currentTimeMillis()
+        return try {
+            Log.d(TAG, "⏱️ [START] Fetching reachable count...")
+            Log.d(TAG, "  Area filter: ${area ?: "all"}")
+            Log.d(TAG, "  Count by device: $countByDevice")
+
+            val apiStartTime = System.currentTimeMillis()
+            val response = api.getReachableUsersCount(area, countByDevice)
+            val apiDuration = System.currentTimeMillis() - apiStartTime
+
+            Log.d(TAG, "⏱️ API call took ${apiDuration}ms")
+
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                val count = body.count
+                val totalDuration = System.currentTimeMillis() - startTime
+
+                Log.d(TAG, "✅ SUCCESS! Count: $count")
+                Log.d(TAG, "⏱️ TOTAL took ${totalDuration}ms")
+                Log.d(TAG, "  Counting method: ${body.countingMethod}")
+                Log.d(TAG, "  Area: ${body.area}")
+                Log.d(TAG, "  Message: ${body.message}")
+
+                Result.success(count)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Unknown error"
+                Log.e(TAG, "❌ Failed to get count: $errorMsg")
+                Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            val totalDuration = System.currentTimeMillis() - startTime
+            Log.e(TAG, "❌ Exception getting reachable count (took ${totalDuration}ms)", e)
+            Result.failure(Exception("Network error: ${e.message}"))
+        }
+    }
+
+    /**
+     * ✅ OPTIMIZED: Get count of reachable users/devices grouped by area
+     *
+     * @param countByDevice If true, counts unique devices per area
+     * @return Map of area name to count
+     */
+    suspend fun getReachableUsersByArea(
+        countByDevice: Boolean = true
+    ): Result<Map<String, Int>> {
+        val startTime = System.currentTimeMillis()
+        return try {
+            Log.d(TAG, "⏱️ [START] Fetching reachable users by area...")
+            Log.d(TAG, "  Count by device: $countByDevice")
+
+            val response = api.getReachableUsersByArea(countByDevice)
+            val duration = System.currentTimeMillis() - startTime
+
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                val areaCounts = body.areaCounts
+
+                Log.d(TAG, "✅ SUCCESS! (took ${duration}ms)")
+                Log.d(TAG, "  Area breakdown: $areaCounts")
+                Log.d(TAG, "  Counting method: ${body.countingMethod}")
+                Log.d(TAG, "  Note: ${body.note}")
+
+                Result.success(areaCounts)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Unknown error"
+                Log.e(TAG, "❌ Failed (took ${duration}ms): $errorMsg")
+                Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+            }
+        } catch (e: Exception) {
+            val duration = System.currentTimeMillis() - startTime
+            Log.e(TAG, "❌ Exception (took ${duration}ms)", e)
             Result.failure(Exception("Network error: ${e.message}"))
         }
     }
@@ -80,18 +168,27 @@ class MapRepository {
 
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
-                Log.d(TAG, "✓ Got my GPS location")
+                Log.d(TAG, "✅ Got my GPS location")
                 Log.d(TAG, "  Has location: ${body.hasLocation}")
                 Log.d(TAG, "  Primary area: ${body.primaryArea}")
+                Log.d(TAG, "  All matching areas: ${body.allMatchingAreas}")
+                Log.d(TAG, "  Is on edge: ${body.isOnEdge}")
+                Log.d(TAG, "  Nearby areas: ${body.nearbyAreas}")
+
+                if (body.gpsLocation != null) {
+                    Log.d(TAG, "  GPS coordinates: (${body.gpsLocation.latitude}, ${body.gpsLocation.longitude})")
+                    Log.d(TAG, "  Accuracy: ${body.gpsLocation.accuracy}m")
+                    Log.d(TAG, "  Last updated: ${body.gpsLocation.lastUpdated}")
+                }
 
                 Result.success(body)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
-                Log.e(TAG, "✗ Failed to get my GPS: $errorMsg")
+                Log.e(TAG, "❌ Failed to get my GPS: $errorMsg")
                 Result.failure(Exception("Error ${response.code()}: $errorMsg"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "✗ Exception getting my GPS location", e)
+            Log.e(TAG, "❌ Exception getting my GPS location", e)
             Result.failure(Exception("Network error: ${e.message}"))
         }
     }
@@ -105,19 +202,31 @@ class MapRepository {
     ): Result<UsersInAreaResponse> {
         return try {
             Log.d(TAG, "Fetching users in area: $areaName")
+            Log.d(TAG, "  Include edge users: $includeEdgeUsers")
+
             val response = api.getUsersInArea(areaName, includeEdgeUsers)
 
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
-                Log.d(TAG, "✓ Found ${body.total} users in $areaName")
+                Log.d(TAG, "✅ Found ${body.total} users in ${body.area}")
+                Log.d(TAG, "  Include edge users: ${body.includeEdgeUsers}")
+
+                body.users.forEachIndexed { index, user ->
+                    Log.d(TAG, "  User $index:")
+                    Log.d(TAG, "    - Display Name: ${user.displayName}")
+                    Log.d(TAG, "    - User ID: ${user.userId}")
+                    Log.d(TAG, "    - Primary Area: ${user.primaryArea}")
+                    Log.d(TAG, "    - Is On Edge: ${user.isOnEdge}")
+                }
+
                 Result.success(body)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
-                Log.e(TAG, "✗ Failed: $errorMsg")
+                Log.e(TAG, "❌ Failed: $errorMsg")
                 Result.failure(Exception("Error ${response.code()}: $errorMsg"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "✗ Exception", e)
+            Log.e(TAG, "❌ Exception", e)
             Result.failure(Exception("Network error: ${e.message}"))
         }
     }

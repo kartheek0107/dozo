@@ -18,13 +18,13 @@ import kotlinx.coroutines.launch
 
 /**
  * CRITICAL: Manages connectivity status and syncs with backend
- * This is what makes users "reachable" in the backend
+ * ✅ UPDATED: Now sends device_id for accurate device counting
  */
 class ConnectivityStatusManager private constructor(private val context: Context) {
 
     companion object {
         private const val TAG = "ConnectivityManager"
-        private const val UPDATE_INTERVAL_MS = 3 * 60 * 1000L // 3 minutes (more frequent)
+        private const val UPDATE_INTERVAL_MS = 3 * 60 * 1000L // 3 minutes
         private const val OFFLINE_CHECK_INTERVAL_MS = 30 * 1000L // 30 seconds
 
         @Volatile
@@ -46,9 +46,19 @@ class ConnectivityStatusManager private constructor(private val context: Context
     private var lastUpdateTime = 0L
     private var wasConnected = false
 
-    /**
-     * Network callback for real-time connectivity changes
-     */
+    // ✅ NEW: Store device ID
+    private val deviceId: String by lazy {
+        try {
+            Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ANDROID_ID
+            ) ?: "unknown"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting device ID", e)
+            "unknown"
+        }
+    }
+
     private val connectivityCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
             Log.d(TAG, "✅ Network AVAILABLE")
@@ -56,7 +66,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
                 delay(2000) // Let connection stabilize
                 updateConnectivityStatus()
 
-                // Broadcast to update UI
                 val intent = Intent("com.example.smallbasket.CONNECTIVITY_CHANGED")
                 intent.putExtra("connected", true)
                 context.sendBroadcast(intent)
@@ -66,7 +75,7 @@ class ConnectivityStatusManager private constructor(private val context: Context
         override fun onLost(network: Network) {
             Log.d(TAG, "❌ Network LOST")
             scope.launch {
-                updateConnectivityStatus() // Update backend to offline
+                updateConnectivityStatus()
 
                 val intent = Intent("com.example.smallbasket.CONNECTIVITY_CHANGED")
                 intent.putExtra("connected", false)
@@ -81,7 +90,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
             Log.d(TAG, "Network capabilities changed - Internet: $hasInternet, Validated: $isValidated")
 
             if (hasInternet && isValidated && !wasConnected) {
-                // Connection quality improved
                 scope.launch {
                     delay(1000)
                     updateConnectivityStatus()
@@ -90,10 +98,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
         }
     }
 
-    /**
-     * CRITICAL: Start monitoring connectivity and update backend
-     * This makes the user "reachable"
-     */
     fun startMonitoring() {
         if (isMonitoring) {
             Log.d(TAG, "Already monitoring")
@@ -102,35 +106,28 @@ class ConnectivityStatusManager private constructor(private val context: Context
 
         isMonitoring = true
         Log.i(TAG, "=== Starting Connectivity Monitoring ===")
+        Log.i(TAG, "📱 Device ID: $deviceId")
 
-        // Register network callback
         registerNetworkCallback()
-
-        // Start periodic updates
         startPeriodicUpdates()
 
-        // Do initial update immediately
         scope.launch {
             updateConnectivityStatus()
         }
     }
 
-    /**
-     * Stop monitoring (on logout or app termination)
-     */
     fun stopMonitoring() {
         if (!isMonitoring) return
 
         isMonitoring = false
         Log.i(TAG, "Stopping connectivity monitoring")
 
-        // Update backend to offline before stopping
         scope.launch {
             try {
                 val request = ConnectivityUpdateRequest(
                     isConnected = false,
                     locationPermissionGranted = false,
-                    deviceId = getDeviceId()
+                    deviceId = deviceId  // ✅ Send device_id
                 )
                 api.updateConnectivity(request)
                 Log.d(TAG, "✅ Set user to offline before stopping")
@@ -146,9 +143,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
         }
     }
 
-    /**
-     * Register network callback to detect connectivity changes
-     */
     private fun registerNetworkCallback() {
         try {
             connectivityManager.registerDefaultNetworkCallback(connectivityCallback)
@@ -158,18 +152,15 @@ class ConnectivityStatusManager private constructor(private val context: Context
         }
     }
 
-    /**
-     * Start periodic connectivity updates
-     */
     private fun startPeriodicUpdates() {
         scope.launch {
             while (isMonitoring) {
                 try {
                     val now = System.currentTimeMillis()
                     val interval = if (checkInternetConnectivity()) {
-                        UPDATE_INTERVAL_MS // 3 minutes when online
+                        UPDATE_INTERVAL_MS
                     } else {
-                        OFFLINE_CHECK_INTERVAL_MS // 30 seconds when offline (check more frequently)
+                        OFFLINE_CHECK_INTERVAL_MS
                     }
 
                     if (now - lastUpdateTime >= interval) {
@@ -181,21 +172,19 @@ class ConnectivityStatusManager private constructor(private val context: Context
 
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in periodic update", e)
-                    delay(60_000) // Wait 1 minute on error
+                    delay(60_000)
                 }
             }
         }
     }
 
     /**
-     * CRITICAL: Update connectivity status on backend
-     * This sets is_reachable = true/false
+     * ✅ UPDATED: Now sends device_id to backend
      */
     private suspend fun updateConnectivityStatus() {
         try {
             val isConnected = checkInternetConnectivity()
             val hasLocationPermission = checkLocationPermission()
-            val deviceId = getDeviceId()
 
             Log.d(TAG, "=== Updating Connectivity Status ===")
             Log.d(TAG, "Connected: $isConnected")
@@ -203,11 +192,11 @@ class ConnectivityStatusManager private constructor(private val context: Context
             Log.d(TAG, "Device ID: $deviceId")
             Log.d(TAG, "Will be reachable: ${isConnected && hasLocationPermission}")
 
-            // Call backend API
+            // ✅ CRITICAL: Send device_id to backend
             val request = ConnectivityUpdateRequest(
                 isConnected = isConnected,
                 locationPermissionGranted = hasLocationPermission,
-                deviceId = deviceId
+                deviceId = deviceId  // ✅ This enables accurate device counting!
             )
 
             val response = api.updateConnectivity(request)
@@ -219,6 +208,7 @@ class ConnectivityStatusManager private constructor(private val context: Context
                 Log.d(TAG, "  - is_connected: ${data?.data?.get("is_connected")}")
                 Log.d(TAG, "  - location_permission: ${data?.data?.get("location_permission_granted")}")
                 Log.d(TAG, "  - device_id: ${data?.data?.get("device_id")}")
+                Log.d(TAG, "  - device_tracked: ${data?.data?.get("device_tracked")}")
 
                 wasConnected = isConnected
             } else {
@@ -231,9 +221,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
         }
     }
 
-    /**
-     * Check if device has internet connectivity
-     */
     private fun checkInternetConnectivity(): Boolean {
         return try {
             val network = connectivityManager.activeNetwork ?: return false
@@ -249,9 +236,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
         }
     }
 
-    /**
-     * Check if location permissions are granted
-     */
     private fun checkLocationPermission(): Boolean {
         return try {
             LocationUtils.hasLocationPermission(context)
@@ -261,24 +245,6 @@ class ConnectivityStatusManager private constructor(private val context: Context
         }
     }
 
-    /**
-     * Get unique device identifier
-     */
-    private fun getDeviceId(): String {
-        return try {
-            Settings.Secure.getString(
-                context.contentResolver,
-                Settings.Secure.ANDROID_ID
-            ) ?: "unknown"
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting device ID", e)
-            "unknown"
-        }
-    }
-
-    /**
-     * Force update connectivity status (call manually if needed)
-     */
     suspend fun forceUpdate() {
         Log.d(TAG, "Force updating connectivity status")
         updateConnectivityStatus()

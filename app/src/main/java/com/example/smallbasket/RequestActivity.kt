@@ -39,12 +39,14 @@ class RequestActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Make status bar transparent and blend with the gradient
+        // Make status bar and navigation bar transparent and blend with the gradient
         window.apply {
             decorView.systemUiVisibility =
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             statusBarColor = android.graphics.Color.TRANSPARENT
+            navigationBarColor = android.graphics.Color.TRANSPARENT
         }
 
         setContentView(R.layout.activity_request)
@@ -263,7 +265,7 @@ class RequestActivity : AppCompatActivity() {
             order?.let {
                 putExtra("pickup_area", it.pickupArea)
                 putExtra("drop_area", it.dropArea)
-                putExtra("item_price", it.itemPrice)
+                putExtra("item_price", it.item_price)
                 putExtra("status", it.status)
                 // ✅ ADD ACCEPTOR INFO
                 putExtra("acceptor_email", it.acceptorEmail)

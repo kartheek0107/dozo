@@ -63,13 +63,13 @@ class OrderConfirmationActivity : AppCompatActivity() {
     private fun displayOrderSummary() {
         // Item and locations
         binding.tvSampleItem.text = "$item"
-        binding.tvOrderPickup.text = "Pickup: $pickup ($pickupArea)"
-        binding.tvOrderDrop.text = "Drop: $drop ($dropArea)"
+        binding.tvOrderPickup.text = "$pickup ($pickupArea)"
+        binding.tvOrderDrop.text = "$drop ($dropArea)"
 
         // Show base price before backend reward is fetched
         binding.tvItemPrice.text = "Item Price: ₹${String.format("%.2f", itemPrice)}"
-        binding.tvDeliveryFee.text = "Delivery Fee: Calculating..."
-        binding.tvTotalAmount.text = "Total Amount: Calculating..."
+//        binding.tvDeliveryFee.text = "Delivery Fee: Calculating..."
+//        binding.tvTotalAmount.text = "Total Amount: Calculating..."
 
         // Priority
         if (priority) {
@@ -184,12 +184,12 @@ class OrderConfirmationActivity : AppCompatActivity() {
 
                 // ✅ Update UI with backend reward
                 val reward = order.reward
-                val totalAmount = order.itemPrice + reward
+                val totalAmount = order.item_price + reward
 
-                binding.tvDeliveryFee.text =
-                    "Delivery Fee: ₹${String.format("%.2f", reward)}"
-                binding.tvTotalAmount.text =
-                    "Total Amount: ₹${String.format("%.2f", totalAmount)}"
+//                binding.tvDeliveryFee.text =
+//                    "Delivery Fee: ₹${String.format("%.2f", reward)}"
+//                binding.tvTotalAmount.text =
+//                    "Total Amount: ₹${String.format("%.2f", totalAmount)}"
 
                 // Navigate to Homepage
                 val intent = Intent(this@OrderConfirmationActivity, Homepage::class.java)
