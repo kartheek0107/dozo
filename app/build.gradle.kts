@@ -79,7 +79,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     // MapLibre
-    implementation("org.maplibre.gl:android-sdk:11.5.1")
+    implementation("org.maplibre.gl:android-sdk:11.8.1")
     implementation("org.maplibre.gl:android-plugin-annotation-v9:1.0.0")
 
     // RecyclerView + CardView
