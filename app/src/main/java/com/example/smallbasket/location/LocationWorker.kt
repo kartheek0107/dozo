@@ -13,11 +13,14 @@ import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.Tasks
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
 
 /**
  * FIXED: Background worker that fetches location AND syncs with backend immediately
+ * Now handles device restart gracefully without crashing
  */
 class LocationWorker(
     context: Context,
@@ -30,6 +33,7 @@ class LocationWorker(
         private const val LOCATION_TIMEOUT_MS = 5000L
         private const val CACHE_MAX_AGE_MS = 10 * 60 * 1000L
         private const val MAX_RETRIES = 3
+        private const val INITIALIZATION_DELAY = 2000L // Wait 2 seconds for app initialization
     }
 
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
@@ -39,35 +43,123 @@ class LocationWorker(
     override suspend fun doWork(): Result {
         Log.d(TAG, "=== LocationWorker STARTED ===")
 
-        if (!repository.isTrackingEnabled()) {
-            Log.d(TAG, "Tracking disabled, skipping")
-            return Result.success()
-        }
-
-        if (!LocationUtils.hasLocationPermission(applicationContext)) {
-            Log.w(TAG, "No location permission, stopping work")
-            return Result.failure()
-        }
-
-        if (!LocationUtils.isLocationEnabled(applicationContext)) {
-            Log.w(TAG, "Location services disabled")
-            return Result.retry()
-        }
-
         return try {
-            val startTime = System.currentTimeMillis()
-            Log.d(TAG, "Attempting to get location")
+            // STEP 1: Wait for app initialization (critical after device restart)
+            delay(INITIALIZATION_DELAY)
+            Log.d(TAG, "Initialization delay completed")
 
-            // Step 1: Get location (try cache first, then fresh)
-            val location = getCachedLocation() ?: run {
-                Log.d(TAG, "No fresh cache, requesting new location")
-                requestFreshLocation()
+            // STEP 2: Verify Firebase is initialized (prevents crashes)
+            if (!isFirebaseReady()) {
+                Log.w(TAG, "❌ Firebase not ready, will retry later")
+                return Result.retry()
             }
 
-            if (location != null) {
-                Log.d(TAG, "✓ Got location: (${location.latitude}, ${location.longitude})")
+            // STEP 3: Check if user is authenticated
+            if (!isUserAuthenticated()) {
+                Log.w(TAG, "⚠️ User not authenticated, skipping location tracking")
+                return Result.success()
+            }
 
-                // Step 2: Save locally
+            // STEP 4: Check if tracking is enabled (with error handling)
+            if (!isTrackingEnabled()) {
+                Log.d(TAG, "Tracking disabled, skipping")
+                return Result.success()
+            }
+
+            // STEP 5: Verify permissions
+            if (!LocationUtils.hasLocationPermission(applicationContext)) {
+                Log.w(TAG, "❌ No location permission, stopping work")
+                return Result.failure()
+            }
+
+            // STEP 6: Check location services
+            if (!LocationUtils.isLocationEnabled(applicationContext)) {
+                Log.w(TAG, "⚠️ Location services disabled, will retry")
+                return Result.retry()
+            }
+
+            // STEP 7: Proceed with location tracking
+            performLocationTracking()
+
+        } catch (e: SecurityException) {
+            Log.e(TAG, "❌ Security exception - missing permissions", e)
+            Result.failure()
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "❌ IllegalStateException - app not ready", e)
+            Result.retry()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Unexpected error in LocationWorker", e)
+            Result.retry()
+        }
+    }
+
+    /**
+     * Check if Firebase is properly initialized
+     */
+    private fun isFirebaseReady(): Boolean {
+        return try {
+            FirebaseApp.getInstance()
+            Log.d(TAG, "✅ Firebase is ready")
+            true
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "❌ Firebase not initialized", e)
+            false
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error checking Firebase state", e)
+            false
+        }
+    }
+
+    /**
+     * Check if user is authenticated
+     */
+    private fun isUserAuthenticated(): Boolean {
+        return try {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser != null) {
+                Log.d(TAG, "✅ User authenticated: ${currentUser.uid}")
+                true
+            } else {
+                Log.w(TAG, "⚠️ No user signed in")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error checking auth state", e)
+            false
+        }
+    }
+
+    /**
+     * Check if tracking is enabled (with error handling)
+     */
+    private fun isTrackingEnabled(): Boolean {
+        return try {
+            repository.isTrackingEnabled()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error checking tracking state", e)
+            // Default to false on error to prevent crashes
+            false
+        }
+    }
+
+    /**
+     * Perform the actual location tracking
+     */
+    private suspend fun performLocationTracking(): Result {
+        val startTime = System.currentTimeMillis()
+        Log.d(TAG, "Attempting to get location")
+
+        // Step 1: Get location (try cache first, then fresh)
+        val location = getCachedLocation() ?: run {
+            Log.d(TAG, "No fresh cache, requesting new location")
+            requestFreshLocation()
+        }
+
+        if (location != null) {
+            Log.d(TAG, "✓ Got location: (${location.latitude}, ${location.longitude})")
+
+            // Step 2: Save locally
+            try {
                 val locationData = LocationData.fromLocation(
                     location = location,
                     source = LocationData.LocationSource.BACKGROUND_WORKER,
@@ -75,29 +167,25 @@ class LocationWorker(
                     batteryLevel = repository.getBatteryLevel(applicationContext)
                 )
                 repository.saveLocation(locationData)
-
-                // Step 3: IMMEDIATELY sync with backend (THIS IS THE FIX!)
-                val syncSuccess = syncLocationWithBackend(location)
-
-                if (syncSuccess) {
-                    val duration = System.currentTimeMillis() - startTime
-                    Log.d(TAG, "✓ Work completed successfully in ${duration}ms")
-                    Result.success()
-                } else {
-                    Log.w(TAG, "✗ Location sync failed, will retry")
-                    Result.retry()
-                }
-            } else {
-                Log.w(TAG, "✗ Failed to get location")
-                Result.retry()
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error saving location locally", e)
+                // Continue even if local save fails
             }
 
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Security exception - missing permissions", e)
-            Result.failure()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in LocationWorker", e)
-            Result.retry()
+            // Step 3: IMMEDIATELY sync with backend (THIS IS THE FIX!)
+            val syncSuccess = syncLocationWithBackend(location)
+
+            if (syncSuccess) {
+                val duration = System.currentTimeMillis() - startTime
+                Log.d(TAG, "✅ Work completed successfully in ${duration}ms")
+                return Result.success()
+            } else {
+                Log.w(TAG, "⚠️ Location sync failed, will retry")
+                return Result.retry()
+            }
+        } else {
+            Log.w(TAG, "✗ Failed to get location")
+            return Result.retry()
         }
     }
 
@@ -124,19 +212,24 @@ class LocationWorker(
 
                 if (response.isSuccessful) {
                     val data = response.body()
-                    Log.d(TAG, "✓ Location synced successfully!")
+                    Log.d(TAG, "✅ Location synced successfully!")
                     Log.d(TAG, "  - Primary area: ${data?.data?.primaryArea}")
                     Log.d(TAG, "  - All areas: ${data?.data?.allMatchingAreas}")
                     Log.d(TAG, "  - Is on edge: ${data?.data?.isOnEdge}")
                     return true
                 } else {
-                    Log.w(TAG, "✗ Backend returned error: ${response.code()} - ${response.message()}")
+                    Log.w(TAG, "⚠️ Backend returned error: ${response.code()} - ${response.message()}")
                     val errorBody = response.errorBody()?.string()
                     Log.w(TAG, "  Error body: $errorBody")
                 }
 
+            } catch (e: IllegalStateException) {
+                // Firebase not ready or auth token issue
+                Log.e(TAG, "❌ IllegalStateException during sync (attempt ${retryCount + 1})", e)
+                // Don't retry immediately if it's a state issue
+                delay(5000) // Wait 5 seconds before retry
             } catch (e: Exception) {
-                Log.e(TAG, "✗ Exception syncing location (attempt ${retryCount + 1})", e)
+                Log.e(TAG, "❌ Exception syncing location (attempt ${retryCount + 1})", e)
             }
 
             retryCount++
@@ -148,7 +241,7 @@ class LocationWorker(
             }
         }
 
-        Log.e(TAG, "✗ Failed to sync location after $MAX_RETRIES attempts")
+        Log.e(TAG, "❌ Failed to sync location after $MAX_RETRIES attempts")
         return false
     }
 
@@ -168,10 +261,10 @@ class LocationWorker(
                 Log.d(TAG, "Cached location age: ${age}ms")
 
                 if (LocationUtils.isLocationFresh(location.time, CACHE_MAX_AGE_MS)) {
-                    Log.d(TAG, "✓ Using cached location")
+                    Log.d(TAG, "✅ Using cached location")
                     location
                 } else {
-                    Log.d(TAG, "✗ Cached location too old")
+                    Log.d(TAG, "⚠️ Cached location too old")
                     null
                 }
             } else {
@@ -179,10 +272,10 @@ class LocationWorker(
                 null
             }
         } catch (e: SecurityException) {
-            Log.e(TAG, "Security exception getting cached location", e)
+            Log.e(TAG, "❌ Security exception getting cached location", e)
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting cached location", e)
+            Log.e(TAG, "❌ Error getting cached location", e)
             null
         }
     }
@@ -207,18 +300,18 @@ class LocationWorker(
             val location = Tasks.await(task, LOCATION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
 
             if (location == null) {
-                Log.w(TAG, "✗ Location request returned null")
+                Log.w(TAG, "⚠️ Location request returned null")
             } else {
-                Log.d(TAG, "✓ Fresh location obtained: accuracy=${location.accuracy}m")
+                Log.d(TAG, "✅ Fresh location obtained: accuracy=${location.accuracy}m")
             }
 
             location
 
         } catch (e: SecurityException) {
-            Log.e(TAG, "Security exception requesting fresh location", e)
+            Log.e(TAG, "❌ Security exception requesting fresh location", e)
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Error requesting fresh location", e)
+            Log.e(TAG, "❌ Error requesting fresh location", e)
             null
         }
     }

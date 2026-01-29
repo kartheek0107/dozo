@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.smallbasket.models.DeliveryRequest
 import com.example.smallbasket.utils.TimeUtils
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -35,7 +36,7 @@ class DeliveryCardAdapter(
     }
 
     override fun onBindViewHolder(holder: DeliveryCardViewHolder, position: Int) {
-        val request = requests[position]
+        val request: DeliveryRequest = requests[position]
 
         // Priority badge visibility
         holder.tvPriorityBadge.visibility = if (request.priority) View.VISIBLE else View.GONE

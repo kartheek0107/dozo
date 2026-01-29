@@ -57,6 +57,9 @@ dependencies {
     // ViewPager2
     implementation("androidx.viewpager2:viewpager2:1.0.0")
 
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
 

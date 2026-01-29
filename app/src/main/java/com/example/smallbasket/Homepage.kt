@@ -38,6 +38,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smallbasket.databinding.ActivityHomepageBinding
 import com.example.smallbasket.location.*
 import com.example.smallbasket.models.Order
+import com.example.smallbasket.models.DeliveryRequest
 import com.example.smallbasket.repository.OrderRepository
 import com.example.smallbasket.repository.MapRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -507,7 +508,7 @@ class Homepage : AppCompatActivity() {
                     runOnUiThread {
                         activeRequestsContainer.removeAllViews()
                         orders.take(2).forEach { order ->
-                            // ✅ FIX: Safe null handling
+                            // ✅ FIX: Safe null handling and include all order fields
                             val request = DeliveryRequest(
                                 orderId = order.id,
                                 title = order.items.joinToString(", "),
@@ -520,7 +521,16 @@ class Homepage : AppCompatActivity() {
                                 bestBefore = order.bestBefore ?: "",
                                 deadline = order.deadline,
                                 rewardPercentage = extractRewardPercentage(order),
-                                itemPrice = order.item_price ?: 0.0
+                                itemPrice = order.item_price ?: 0.0,
+                                pickupArea = order.pickupArea,
+                                dropArea = order.dropArea,
+                                status = order.status,
+                                acceptorEmail = order.acceptorEmail,
+                                acceptorName = order.acceptorName,
+                                acceptorPhone = order.acceptorPhone,
+                                requesterEmail = order.posterEmail,
+                                requesterName = order.posterName,
+                                requesterPhone = order.posterPhone
                             )
                             val cardView = layoutInflater.inflate(R.layout.item_active_request_card, activeRequestsContainer, false)
                             bindRequestToCard(cardView, request)
@@ -626,7 +636,7 @@ class Homepage : AppCompatActivity() {
         }
     }
 
-    // ✅ CRITICAL FIX: order.reward is NOT nullable in Order model
+    // ✅ CRITICAL FIX: Handle nullable reward consistently
     private fun extractRewardPercentage(order: Order): Int = try {
         order.reward.toInt()
     } catch (e: Exception) {
@@ -684,29 +694,27 @@ class Homepage : AppCompatActivity() {
             putExtra("priority", if (request.priority) "emergency" else "normal")
             putExtra("best_before", request.bestBefore)
             putExtra("deadline", request.deadline)
-            putExtra("reward_percentage", request.rewardPercentage)
+            putExtra("reward_percentage", request.rewardPercentage?.toDouble() ?: 0.0)
             putExtra("isImportant", request.priority)
             putExtra("fee", request.fee)
             putExtra("time", request.time)
             putExtra("item_price", request.itemPrice)
+
+            // ✅ ADD ALL ORDER DATA to match RequestActivity
+            putExtra("pickup_area", request.pickupArea)
+            putExtra("drop_area", request.dropArea)
+            putExtra("status", request.status)
+            // ✅ ADD ACCEPTOR INFO
+            putExtra("acceptor_email", request.acceptorEmail)
+            putExtra("acceptor_name", request.acceptorName)
+            putExtra("acceptor_phone", request.acceptorPhone)
+            // ✅ ADD REQUESTER INFO
+            putExtra("requester_email", request.requesterEmail)
+            putExtra("requester_name", request.requesterName)
+            putExtra("requester_phone", request.requesterPhone)
         }
         startActivity(intent)
     }
-
-    data class DeliveryRequest(
-        val orderId: String,
-        val title: String,
-        val pickup: String,
-        val dropoff: String,
-        val fee: String,
-        val time: String,
-        val priority: Boolean,
-        val details: String,
-        val bestBefore: String,
-        val deadline: String,
-        val rewardPercentage: Int,
-        val itemPrice: Double
-    )
 
     private class AreaUserAdapter(private val areas: List<Pair<String, Int>>) :
         RecyclerView.Adapter<AreaUserAdapter.ViewHolder>() {

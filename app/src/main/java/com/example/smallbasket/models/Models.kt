@@ -18,6 +18,31 @@ data class CreateOrderRequest(
     @SerializedName("deadline") val deadline: String,
     @SerializedName("priority") val priority: Boolean = false,
     @SerializedName("notes") val notes: String? = null
+
+)
+
+data class DeliveryRequest(
+    val orderId: String,
+    val title: String,
+    val pickup: String,
+    val dropoff: String,
+    val fee: String,
+    val time: String,
+    val priority: Boolean,
+    val details: String,
+    val bestBefore: String,
+    val deadline: String,
+    val rewardPercentage: Int,
+    val itemPrice: Double,
+    val pickupArea: String? = null,
+    val dropArea: String? = null,
+    val status: String? = null,
+    val acceptorEmail: String? = null,
+    val acceptorName: String? = null,
+    val acceptorPhone: String? = null,
+    val requesterEmail: String? = null,
+    val requesterName: String? = null,
+    val requesterPhone: String? = null
 )
 
 data class AcceptOrderRequest(
@@ -37,6 +62,8 @@ data class Order(
     @SerializedName("request_id") val id: String,
     @SerializedName("posted_by") val userId: String,
     @SerializedName("poster_email") val posterEmail: String,
+    @SerializedName("poster_name") val posterName: String? = null,
+    @SerializedName("poster_phone") val posterPhone: String? = null,
     @SerializedName("accepted_by") val delivererId: String? = null,
     @SerializedName("acceptor_email") val acceptorEmail: String? = null,
     @SerializedName("acceptor_name") val acceptorName: String? = null,
@@ -47,7 +74,7 @@ data class Order(
     @SerializedName("drop_location") val dropLocation: String,
     @SerializedName("drop_area") val dropArea: String,
     @SerializedName("reward") val reward: Double,
-    @SerializedName("item_price") val item_price: Double,  // ✅ CRITICAL FIX
+    @SerializedName("item_price") val item_price: Double,
     @SerializedName("time_requested") val bestBefore: String,
     @SerializedName("deadline") val deadline: String,
     @SerializedName("priority") val priorityFlag: Boolean,

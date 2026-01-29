@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smallbasket.repository.OrderRepository
 import com.example.smallbasket.models.Order
+import com.example.smallbasket.models.DeliveryRequest
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -186,10 +187,14 @@ class RequestActivity : AppCompatActivity() {
                 fee = formatFee(order),
                 time = calculateTimeDisplay(order.deadline),
                 priority = isPriorityOrder(order.priority),
+                itemPrice = order.item_price,
                 details = order.notes ?: "",
                 bestBefore = order.bestBefore,
                 deadline = order.deadline,
-                rewardPercentage = extractRewardPercentage(order)
+                rewardPercentage = extractRewardPercentage(order),
+                requesterEmail = order.posterEmail,
+                requesterName = order.posterName,
+                requesterPhone = order.posterPhone
             )
         }
 
@@ -271,6 +276,10 @@ class RequestActivity : AppCompatActivity() {
                 putExtra("acceptor_email", it.acceptorEmail)
                 putExtra("acceptor_name", it.acceptorName)  // ✅ NEW
                 putExtra("acceptor_phone", it.acceptorPhone)  // ✅ NEW
+                // ✅ ADD REQUESTER INFO
+                putExtra("requester_email", it.posterEmail)
+                putExtra("requester_name", it.posterName)
+                putExtra("requester_phone", it.posterPhone)
             }
         }
         startActivity(intent)
@@ -315,4 +324,5 @@ class RequestActivity : AppCompatActivity() {
     // Public wrappers (in case needed externally)
     fun triggerLightHaptic() = performLightHaptic()
     fun triggerMediumHaptic() = performMediumHaptic()
+
 }

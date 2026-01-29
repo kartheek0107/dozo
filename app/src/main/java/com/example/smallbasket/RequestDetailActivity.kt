@@ -1,463 +1,236 @@
 package com.example.smallbasket
 
-import android.content.Intent
-import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
-import android.view.HapticFeedbackConstants
 import android.view.View
-import android.view.WindowInsetsController
+import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AlertDialog
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.example.smallbasket.databinding.ActivityRequestDetailsBinding
-import com.example.smallbasket.repository.OrderRepository
-import com.example.smallbasket.utils.TimeUtils
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
+import androidx.cardview.widget.CardView
 
 class RequestDetailActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityRequestDetailsBinding
-    private val repository = OrderRepository()
-    private val auth = FirebaseAuth.getInstance()
-    private var orderId: String = ""
-    private var orderStatus: String = "open"
-    private var acceptorEmail: String? = null
-    private var acceptorName: String? = null
-    private var acceptorPhone: String? = null  // ✅ NEW FIELD
-    private lateinit var vibrator: Vibrator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setupStatusBar()
-        enableEdgeToEdge()
+        // Make status bar transparent
+        window.apply {
+            decorView.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            statusBarColor = android.graphics.Color.TRANSPARENT
+            navigationBarColor = android.graphics.Color.TRANSPARENT
+        }
 
-        binding = ActivityRequestDetailsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_request_details)
 
-        initializeHaptics()
-
-        // Get data from intent
-        orderId = intent.getStringExtra("order_id") ?: ""
-        val title = intent.getStringExtra("title")
-        val pickup = intent.getStringExtra("pickup")
-        val pickupArea = intent.getStringExtra("pickup_area") ?: ""
-        val drop = intent.getStringExtra("drop")
-        val dropArea = intent.getStringExtra("drop_area") ?: ""
-        val details = intent.getStringExtra("details")
+        // Get all data from intent
+        val orderId = intent.getStringExtra("order_id") ?: ""
+        val title = intent.getStringExtra("title") ?: ""
+        val pickup = intent.getStringExtra("pickup") ?: ""
+        val drop = intent.getStringExtra("drop") ?: ""
+        val details = intent.getStringExtra("details") ?: ""
         val priority = intent.getStringExtra("priority") ?: "normal"
-        val bestBefore = intent.getStringExtra("best_before") ?: ""
-        val deadline = intent.getStringExtra("deadline") ?: ""
-        val rewardPercentage = intent.getDoubleExtra("reward_percentage", 10.0)
+        val bestBefore = intent.getStringExtra("best_before")
+        val deadline = intent.getStringExtra("deadline")
+        val rewardPercentage = intent.getDoubleExtra("reward_percentage", 0.0)
         val isImportant = intent.getBooleanExtra("isImportant", false)
+        val fee = intent.getStringExtra("fee") ?: "₹0"
+        val time = intent.getStringExtra("time") ?: ""
+        val pickupArea = intent.getStringExtra("pickup_area")
+        val dropArea = intent.getStringExtra("drop_area")
         val itemPrice = intent.getDoubleExtra("item_price", 0.0)
-        orderStatus = intent.getStringExtra("status") ?: "open"
-        acceptorEmail = intent.getStringExtra("acceptor_email")
-        acceptorName = intent.getStringExtra("acceptor_name")  // ✅ GET FROM INTENT
-        acceptorPhone = intent.getStringExtra("acceptor_phone")  // ✅ GET FROM INTENT
+        val status = intent.getStringExtra("status") ?: "open"
 
-        // Set basic data
-        binding.tvItemTitle.text = title ?: "Unknown Item"
+        // Requester (Poster) Info
+        val requesterEmail = intent.getStringExtra("requester_email")
+        val requesterName = intent.getStringExtra("requester_name")
+        val requesterPhone = intent.getStringExtra("requester_phone")
 
-        // Set pickup with area
-        binding.tvPickup.text = if (pickupArea.isNotEmpty()) {
-            "$pickup ($pickupArea)"
-        } else {
-            pickup ?: "Pickup location"
-        }
+        // Acceptor Info
+        val acceptorEmail = intent.getStringExtra("acceptor_email")
+        val acceptorName = intent.getStringExtra("acceptor_name")
+        val acceptorPhone = intent.getStringExtra("acceptor_phone")
 
-        // Set drop with area
-        binding.tvDrop.text = if (dropArea.isNotEmpty()) {
-            "$drop ($dropArea)"
-        } else {
-            drop ?: "Drop location"
-        }
-
-        // Set best before time with TimeUtils
-        binding.tvBestBefore.text = if (bestBefore.isNotEmpty()) {
-            TimeUtils.getTimeRemaining(bestBefore)
-        } else {
-            "Not specified"
-        }
-
-        // Display both item price and reward
-        if (itemPrice > 0) {
-            binding.layoutItemPrice.visibility = View.VISIBLE
-            binding.tvItemPrice.text = "₹${itemPrice.toInt()}"
-        } else {
-            binding.layoutItemPrice.visibility = View.GONE
-        }
-        binding.tvReward.text = "₹${rewardPercentage.toInt()}"
-
-        // Set notes
-        if (!details.isNullOrEmpty()) {
-            binding.tvNotes.text = details
-            binding.cardNotes.visibility = View.VISIBLE
-        } else {
-            binding.cardNotes.visibility = View.GONE
-        }
-
-        // Handle priority badge
-        if (isImportant || priority.equals("high", ignoreCase = true) || priority.equals("emergency", ignoreCase = true)) {
-            binding.layoutPriority.visibility = View.VISIBLE
-            binding.tvPriority.text = "Priority"
-        } else {
-            binding.layoutPriority.visibility = View.GONE
-        }
-
-        configureAcceptButton()
-
-        // If order is accepted/completed, fetch and show acceptor info
-        if (orderStatus == "accepted" || orderStatus == "completed") {
-            loadAndDisplayAcceptorInfo()
-        }
-
-        setupBackButton()
-        setupAcceptButton()
-        setupScrollListener()
-
-        binding.btnBackHome.setOnClickListener {
-            performLightHaptic(it)
-            finish()
-        }
-    }
-
-    // ===== HAPTIC FEEDBACK SYSTEM =====
-
-    private fun initializeHaptics() {
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
-    }
-
-    private fun performLightHaptic(view: View) {
-        view.performHapticFeedback(
-            HapticFeedbackConstants.CLOCK_TICK,
-            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+        // Initialize views
+        initializeViews(
+            title, pickup, drop, details, priority, bestBefore,
+            deadline, fee, isImportant, itemPrice, status
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(10, 40)
-            )
+        // Populate requester and acceptor cards
+        populateRequesterInfo(requesterName, requesterEmail, requesterPhone)
+        populateAcceptorInfo(acceptorEmail, acceptorName, acceptorPhone, status)
+
+        // Setup back button
+        findViewById<ImageView>(R.id.btnBack).setOnClickListener {
+            onBackPressed()
         }
+
+        // Setup accept button (if status is "open")
+        setupAcceptButton(orderId, status)
     }
 
-    private fun performMediumHaptic(view: View) {
-        view.performHapticFeedback(
-            HapticFeedbackConstants.CONTEXT_CLICK,
-            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-        )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(15, 80)
-            )
-        }
-    }
-
-    private fun performSuccessHaptic() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val timings = longArrayOf(0, 50, 50, 100)
-            val amplitudes = intArrayOf(0, 80, 0, 120)
-            vibrator.vibrate(
-                VibrationEffect.createWaveform(timings, amplitudes, -1)
-            )
-        }
-    }
-
-    // ===== END HAPTIC SYSTEM =====
-
-    private fun configureAcceptButton() {
-        if (orderStatus == "open") {
-            binding.btnAcceptRequest.visibility = View.VISIBLE
-        } else {
-            binding.btnAcceptRequest.visibility = View.GONE
-        }
-    }
-
-    private fun loadAndDisplayAcceptorInfo() {
-        lifecycleScope.launch {
-            try {
-                val result = repository.getOrder(orderId)
-
-                result.onSuccess { order ->
-                    // Update all acceptor fields from API
-                    acceptorEmail = order.acceptorEmail
-                    acceptorName = order.acceptorName  // ✅ GET FROM API
-                    acceptorPhone = order.acceptorPhone  // ✅ GET FROM API
-
-                    if (!acceptorEmail.isNullOrEmpty()) {
-                        displayAcceptorCard(
-                            email = acceptorEmail!!,
-                            name = acceptorName,
-                            phone = acceptorPhone,
-                            status = order.status
-                        )
-                    }
-                }
-
-                result.onFailure { error ->
-                    // Fallback to intent data
-                    if (!acceptorEmail.isNullOrEmpty()) {
-                        displayAcceptorCard(
-                            email = acceptorEmail!!,
-                            name = acceptorName,
-                            phone = acceptorPhone,
-                            status = orderStatus
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                // Fallback to intent data
-                if (!acceptorEmail.isNullOrEmpty()) {
-                    displayAcceptorCard(
-                        email = acceptorEmail!!,
-                        name = acceptorName,
-                        phone = acceptorPhone,
-                        status = orderStatus
-                    )
-                }
-            }
-        }
-    }
-
-    private fun displayAcceptorCard(
-        email: String,
-        name: String?,
-        phone: String?,
+    private fun initializeViews(
+        title: String,
+        pickup: String,
+        drop: String,
+        details: String,
+        priority: String,
+        bestBefore: String?,
+        deadline: String?,
+        fee: String,
+        isImportant: Boolean,
+        itemPrice: Double,
         status: String
     ) {
-        val scrollViewContent = binding.scrollView.getChildAt(0) as? LinearLayout
-        if (scrollViewContent == null) return
+        // Set title
+        findViewById<TextView>(R.id.tvItemTitle).text = title
 
-        // Remove existing card if present
-        val existingCard = scrollViewContent.findViewWithTag<View>("acceptor_card")
-        if (existingCard != null) {
-            scrollViewContent.removeView(existingCard)
-        }
+        // Set priority badge visibility
+        val layoutPriority = findViewById<LinearLayout>(R.id.layoutPriority)
+        layoutPriority.visibility = if (isImportant) View.VISIBLE else View.GONE
 
-        // Inflate acceptor info card
-        val acceptorCard = layoutInflater.inflate(
-            R.layout.card_acceptor_info,
-            scrollViewContent,
-            false
-        )
+        // Set pickup and drop locations
+        findViewById<TextView>(R.id.tvPickup).text = pickup
+        findViewById<TextView>(R.id.tvDrop).text = drop
 
-        acceptorCard.tag = "acceptor_card"
-
-        // Set acceptor name (or fallback to email if name is null)
-        acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorName)?.text =
-            name
-
-        // Set acceptor email
-        acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorEmail)?.text = email
-
-        // ✅ Set acceptor phone
-        val phoneLayout = acceptorCard.findViewById<LinearLayout>(R.id.layoutAcceptorPhone)
-        val phoneTextView = acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorPhone)
-        acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorPhone)?.text = phone
-        if (!phone.isNullOrEmpty()) {
-            phoneLayout?.visibility = View.VISIBLE
-            phoneTextView?.text = phone
+        // Set best before time
+        val layoutBestBefore = findViewById<LinearLayout>(R.id.layoutBestBefore)
+        if (!bestBefore.isNullOrEmpty()) {
+            findViewById<TextView>(R.id.tvBestBefore).text = bestBefore
+            layoutBestBefore.visibility = View.VISIBLE
         } else {
-            phoneLayout?.visibility = View.VISIBLE
+            layoutBestBefore.visibility = View.GONE
         }
 
-        // Set status badge
-        val statusText = when (status) {
-            "accepted" -> "Delivery in Progress"
-            "completed" -> "Delivered"
-            else -> "Accepted"
-        }
-
-        val statusColor = when (status) {
-            "accepted" -> android.R.color.holo_blue_dark
-            "completed" -> android.R.color.holo_green_dark
-            else -> android.R.color.holo_orange_dark
-        }
-
-        acceptorCard.findViewById<android.widget.TextView>(R.id.tvAcceptorStatus)?.apply {
-            text = statusText
-            setTextColor(resources.getColor(statusColor, null))
-        }
-
-        // Add card to layout
-        val cardNotesIndex = scrollViewContent.indexOfChild(binding.cardNotes)
-        if (cardNotesIndex >= 0) {
-            scrollViewContent.addView(acceptorCard, cardNotesIndex + 1)
+        // Set item price
+        val layoutItemPrice = findViewById<LinearLayout>(R.id.layoutItemPrice)
+        if (itemPrice > 0) {
+            findViewById<TextView>(R.id.tvItemPrice).text = "₹$itemPrice"
+            layoutItemPrice.visibility = View.VISIBLE
         } else {
-            val hiddenFieldsIndex = scrollViewContent.indexOfChild(binding.tvDeadline)
-            if (hiddenFieldsIndex >= 0) {
-                scrollViewContent.addView(acceptorCard, hiddenFieldsIndex)
+            layoutItemPrice.visibility = View.GONE
+        }
+
+        // Set delivery fee
+        findViewById<TextView>(R.id.tvReward).text = fee
+
+        // Set notes
+        val cardNotes = findViewById<CardView>(R.id.cardNotes)
+        if (details.isNotEmpty()) {
+            findViewById<TextView>(R.id.tvNotes).text = details
+            cardNotes.visibility = View.VISIBLE
+        } else {
+            cardNotes.visibility = View.GONE
+        }
+    }
+
+    private fun populateRequesterInfo(
+        requesterName: String?,
+        requesterEmail: String?,
+        requesterPhone: String?
+    ) {
+        // Get the included requester card
+        val requesterCard = findViewById<View>(R.id.includeRequesterInfo)
+        val tvRequesterName = requesterCard.findViewById<TextView>(R.id.tvRequesterName)
+        val tvRequesterEmail = requesterCard.findViewById<TextView>(R.id.tvRequesterEmail)
+        val tvRequesterPhone = requesterCard.findViewById<TextView>(R.id.tvRequesterPhone)
+        val layoutRequesterPhone = requesterCard.findViewById<LinearLayout>(R.id.layoutRequesterPhone)
+
+        // Populate requester data
+        tvRequesterName.text = requesterName ?: "Unknown"
+        tvRequesterEmail.text = requesterEmail ?: "N/A"
+
+        // Show or hide phone number based on availability
+        if (!requesterPhone.isNullOrEmpty()) {
+            tvRequesterPhone.text = requesterPhone
+            layoutRequesterPhone.visibility = View.VISIBLE
+        } else {
+            layoutRequesterPhone.visibility = View.GONE
+        }
+    }
+
+    private fun populateAcceptorInfo(
+        acceptorEmail: String?,
+        acceptorName: String?,
+        acceptorPhone: String?,
+        status: String
+    ) {
+        // Get the acceptor card
+        val acceptorCard = findViewById<View>(R.id.includeAcceptorInfo)
+
+        // Only show acceptor card if the request has been accepted
+        // Status could be "accepted", "in_progress", "completed", etc. (anything except "open")
+        if (!acceptorEmail.isNullOrEmpty() && status != "open") {
+            acceptorCard.visibility = View.VISIBLE
+
+            val tvAcceptorName = acceptorCard.findViewById<TextView>(R.id.tvAcceptorName)
+            val tvAcceptorEmail = acceptorCard.findViewById<TextView>(R.id.tvAcceptorEmail)
+            val tvAcceptorPhone = acceptorCard.findViewById<TextView>(R.id.tvAcceptorPhone)
+            val layoutAcceptorPhone = acceptorCard.findViewById<LinearLayout>(R.id.layoutAcceptorPhone)
+            val tvAcceptorStatus = acceptorCard.findViewById<TextView>(R.id.tvAcceptorStatus)
+
+            // Set acceptor name and email
+            tvAcceptorName.text = acceptorName ?: "Unknown"
+            tvAcceptorEmail.text = acceptorEmail
+
+            // Show or hide phone number based on availability
+            if (!acceptorPhone.isNullOrEmpty()) {
+                tvAcceptorPhone.text = acceptorPhone
+                layoutAcceptorPhone.visibility = View.VISIBLE
             } else {
-                scrollViewContent.addView(acceptorCard)
+                layoutAcceptorPhone.visibility = View.GONE
             }
-        }
-    }
 
-    private fun setupStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.apply {
-                statusBarColor = Color.TRANSPARENT
-                @Suppress("DEPRECATION")
-                decorView.systemUiVisibility = (
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        )
-            }
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(
-                0,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-            )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-        }
-    }
-
-    private fun setupScrollListener() {
-        binding.scrollView.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
-            if (scrollY > 140) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    window.insetsController?.setSystemBarsAppearance(
-                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                    )
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    @Suppress("DEPRECATION")
-                    window.decorView.systemUiVisibility =
-                        window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            // Update status badge based on current status
+            when (status.lowercase()) {
+                "accepted" -> {
+                    tvAcceptorStatus.text = "Accepted"
+                    tvAcceptorStatus.setTextColor(getColor(R.color.teal_600))
                 }
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    window.insetsController?.setSystemBarsAppearance(
-                        0,
-                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                    )
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    @Suppress("DEPRECATION")
-                    window.decorView.systemUiVisibility =
-                        window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                "in_progress", "in progress" -> {
+                    tvAcceptorStatus.text = "In Progress"
+                    tvAcceptorStatus.setTextColor(getColor(R.color.teal_700))
+                }
+                "completed" -> {
+                    tvAcceptorStatus.text = "Completed"
+                    tvAcceptorStatus.setTextColor(getColor(R.color.green_600))
+                }
+                "delivering" -> {
+                    tvAcceptorStatus.text = "Delivering"
+                    tvAcceptorStatus.setTextColor(getColor(R.color.orange_600))
+                }
+                else -> {
+                    tvAcceptorStatus.text = status.replaceFirstChar { it.uppercase() }
                 }
             }
+        } else {
+            // Hide acceptor card if request is still open
+            acceptorCard.visibility = View.GONE
         }
     }
 
-    private fun setupBackButton() {
-        binding.btnBack.setOnClickListener {
-            performLightHaptic(it)
-            finish()
-        }
-    }
+    private fun setupAcceptButton(orderId: String, status: String) {
+        val btnAcceptRequest = findViewById<CardView>(R.id.btnAcceptRequest)
+        val btnAcceptRequestInner = findViewById<android.widget.Button>(R.id.btnAcceptRequestInner)
 
-    private fun setupAcceptButton() {
-        val innerButton = binding.root.findViewById<android.widget.Button>(R.id.btnAcceptRequestInner)
-        innerButton?.setOnClickListener {
-            performMediumHaptic(it)
-            showConfirmationDialog()
-        }
-    }
-
-    private fun showConfirmationDialog() {
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Accept Delivery")
-            .setMessage("Are you sure you want to accept this delivery request?")
-            .setPositiveButton("Yes, Accept") { _, _ ->
-                acceptOrder()
+        // Only show accept button if status is "open"
+        if (status == "open") {
+            btnAcceptRequest.visibility = View.VISIBLE
+            btnAcceptRequestInner.setOnClickListener {
+                // TODO: Implement accept delivery logic
+                // This would typically:
+                // 1. Update the order status in Firebase
+                // 2. Set acceptorEmail to current user's email
+                // 3. Set acceptorName to current user's name
+                // 4. Set acceptorPhone to current user's phone
+                // 5. Navigate back or refresh the screen
             }
-            .setNegativeButton("Cancel", null)
-            .create()
-
-        dialog.show()
-
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-            performMediumHaptic(it)
-            acceptOrder()
-            dialog.dismiss()
-        }
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
-            performLightHaptic(it)
-            dialog.dismiss()
-        }
-    }
-
-    private fun acceptOrder() {
-        val innerButton = binding.root.findViewById<android.widget.Button>(R.id.btnAcceptRequestInner)
-        innerButton?.isEnabled = false
-        innerButton?.text = "Accepting..."
-
-        lifecycleScope.launch {
-            val result = repository.acceptOrder(orderId, auth.currentUser?.uid ?: "", 0.0)
-
-            result.onSuccess { order ->
-                performSuccessHaptic()
-
-                // Update UI with acceptor info
-                orderStatus = order.status
-                acceptorEmail = order.acceptorEmail
-                acceptorName = order.acceptorName ?: auth.currentUser?.displayName
-                acceptorPhone = order.acceptorPhone  // ✅ GET FROM ORDER
-
-                // Hide accept button
-                binding.btnAcceptRequest.visibility = View.GONE
-
-                // Show acceptor card
-                if (!acceptorEmail.isNullOrEmpty()) {
-                    displayAcceptorCard(
-                        email = acceptorEmail!!,
-                        name = acceptorName,
-                        phone = acceptorPhone,
-                        status = orderStatus
-                    )
-                }
-
-                showOrderAcceptedDialog()
-            }
-
-            result.onFailure { error ->
-                Toast.makeText(
-                    this@RequestDetailActivity,
-                    "Error: ${error.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-                innerButton?.isEnabled = true
-                innerButton?.text = "Accept Delivery"
-            }
-        }
-    }
-
-    private fun showOrderAcceptedDialog() {
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("✅ Order Confirmed")
-            .setMessage("Your order has been successfully accepted!\n\nYou can mark it as delivered later from the 'My Deliveries' section.")
-            .setPositiveButton("OK") { _, _ ->
-                // Do nothing, stay on this page to see acceptor info
-            }
-            .setCancelable(false)
-            .create()
-
-        dialog.show()
-
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-            performLightHaptic(it)
-            dialog.dismiss()
+        } else {
+            // Hide accept button if already accepted
+            btnAcceptRequest.visibility = View.GONE
         }
     }
 }
