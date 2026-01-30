@@ -29,7 +29,7 @@ class OrderActivity : AppCompatActivity() {
     private lateinit var binding: ActivityOrderBinding
     private val repository = OrderRepository()
     private val auth = FirebaseAuth.getInstance()
-    private var selectedDeadline = "30m"
+    private var selectedDeadline = "1h" // ✅ Default to 1 hour
     private var customDeadlineMinutes: Int? = null
     private lateinit var vibrator: Vibrator
 
@@ -50,17 +50,16 @@ class OrderActivity : AppCompatActivity() {
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
-        setupSpinners() // ✅ Setup custom spinners
+        setupSpinners()
         setupBackButton()
-        setupDeadlineButtons()
+        setupDeadlineRadioGroup()
         setupListeners()
-        setupScrollListener()
+        setupScrollListener() // ✅ RESTORED: Needed for status bar transitions with header
 
         // Restore state if coming back from confirmation screen
         restoreState()
     }
 
-    // ✅ NEW METHOD: Setup custom spinner adapters
     private fun setupSpinners() {
         // Setup Pickup Area Spinner
         val pickupAreas = resources.getStringArray(R.array.pickup_areas)
@@ -141,7 +140,7 @@ class OrderActivity : AppCompatActivity() {
                 binding.tvCustomTime.visibility = View.VISIBLE
                 binding.tvCustomTime.text = "Expires at $formattedTime"
             }
-            updateDeadlineButton(deadline)
+            selectDeadlineRadioButton(deadline)
         }
 
         binding.priority.isChecked = priority
@@ -155,19 +154,20 @@ class OrderActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.apply {
                 statusBarColor = Color.TRANSPARENT
-                navigationBarColor = Color.TRANSPARENT // ✅ Make navigation bar transparent
+                navigationBarColor = Color.TRANSPARENT
                 @Suppress("DEPRECATION")
                 decorView.systemUiVisibility = (
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION // ✅ Extend layout behind navigation bar
+                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         )
             }
         }
 
+        // ✅ Start with dark status bar (light icons) for teal header
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.setSystemBarsAppearance(
-                0,
+                0, // Dark status bar
                 WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
             )
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -177,9 +177,11 @@ class OrderActivity : AppCompatActivity() {
         }
     }
 
+    // ✅ RESTORED: Dynamic status bar switching based on scroll
     private fun setupScrollListener() {
         binding.scrollView.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
-            if (scrollY > 140) {
+            // When scrolled past header, switch to light status bar (dark icons)
+            if (scrollY > 100) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     window.insetsController?.setSystemBarsAppearance(
                         WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
@@ -191,6 +193,7 @@ class OrderActivity : AppCompatActivity() {
                         window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
                 }
             } else {
+                // When at top, dark status bar (light icons) for teal header
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     window.insetsController?.setSystemBarsAppearance(
                         0,
@@ -207,58 +210,58 @@ class OrderActivity : AppCompatActivity() {
 
     private fun setupBackButton() {
         binding.btnBack.setOnClickListener {
-            // Medium Haptic for navigation action
             performMediumHaptic()
             finish()
         }
     }
 
-    private fun setupDeadlineButtons() {
-        updateDeadlineButton("30m")
+    private fun setupDeadlineRadioGroup() {
+        // Set default selection (1 hour is pre-checked in XML)
+        selectedDeadline = "1h"
 
-        binding.deadline30m.setOnClickListener {
-            // Light Haptic for selection toggle
+        binding.deadlineGroup.setOnCheckedChangeListener { group, checkedId ->
             performLightHaptic()
-            selectedDeadline = "30m"
-            customDeadlineMinutes = null
-            binding.tvCustomTime.visibility = View.GONE
-            updateDeadlineButton("30m")
-        }
 
-        binding.deadline1h.setOnClickListener {
-            performLightHaptic()
-            selectedDeadline = "1h"
-            customDeadlineMinutes = null
-            binding.tvCustomTime.visibility = View.GONE
-            updateDeadlineButton("1h")
-        }
-
-        binding.deadline2h.setOnClickListener {
-            performLightHaptic()
-            selectedDeadline = "2h"
-            customDeadlineMinutes = null
-            binding.tvCustomTime.visibility = View.GONE
-            updateDeadlineButton("2h")
-        }
-
-        binding.deadline4h.setOnClickListener {
-            performLightHaptic()
-            selectedDeadline = "4h"
-            customDeadlineMinutes = null
-            binding.tvCustomTime.visibility = View.GONE
-            updateDeadlineButton("4h")
-        }
-
-        binding.deadlineCustom.setOnClickListener {
-            // Light Haptic when opening picker
-            performLightHaptic()
-            showCustomTimePicker()
+            when (checkedId) {
+                R.id.deadline_30m -> {
+                    selectedDeadline = "30m"
+                    customDeadlineMinutes = null
+                    binding.tvCustomTime.visibility = View.GONE
+                }
+                R.id.deadline_1h -> {
+                    selectedDeadline = "1h"
+                    customDeadlineMinutes = null
+                    binding.tvCustomTime.visibility = View.GONE
+                }
+                R.id.deadline_2h -> {
+                    selectedDeadline = "2h"
+                    customDeadlineMinutes = null
+                    binding.tvCustomTime.visibility = View.GONE
+                }
+                R.id.deadline_4h -> {
+                    selectedDeadline = "4h"
+                    customDeadlineMinutes = null
+                    binding.tvCustomTime.visibility = View.GONE
+                }
+                R.id.deadline_custom -> {
+                    showCustomTimePicker()
+                }
+            }
         }
 
         // Priority toggle haptic
         binding.priority.setOnCheckedChangeListener { _, isChecked ->
-            // Medium Haptic for important toggle (priority affects order)
             performMediumHaptic()
+        }
+    }
+
+    private fun selectDeadlineRadioButton(deadline: String) {
+        when (deadline) {
+            "30m" -> binding.deadline30m.isChecked = true
+            "1h" -> binding.deadline1h.isChecked = true
+            "2h" -> binding.deadline2h.isChecked = true
+            "4h" -> binding.deadline4h.isChecked = true
+            "custom" -> binding.deadlineCustom.isChecked = true
         }
     }
 
@@ -268,7 +271,6 @@ class OrderActivity : AppCompatActivity() {
         val timePickerDialog = TimePickerDialog(
             this,
             { _, hourOfDay, minute ->
-                // Light Haptic when time is selected
                 performLightHaptic()
 
                 val currentCalendar = Calendar.getInstance()
@@ -287,13 +289,13 @@ class OrderActivity : AppCompatActivity() {
                 val diffInMinutes = (diffInMillis / (1000 * 60)).toInt()
 
                 if (diffInMinutes < 10) {
-                    // Medium Haptic for error feedback
                     performMediumHaptic()
                     Toast.makeText(
                         this,
                         "Please select a time at least 10 minutes from now",
                         Toast.LENGTH_SHORT
                     ).show()
+                    selectDeadlineRadioButton(selectedDeadline)
                     return@TimePickerDialog
                 }
 
@@ -305,8 +307,6 @@ class OrderActivity : AppCompatActivity() {
 
                 selectedDeadline = "custom"
                 customDeadlineMinutes = diffInMinutes
-
-                updateDeadlineButton("custom")
             },
             calendar.get(Calendar.HOUR_OF_DAY),
             calendar.get(Calendar.MINUTE),
@@ -314,47 +314,12 @@ class OrderActivity : AppCompatActivity() {
         )
 
         timePickerDialog.setTitle("Select expiry time")
-        timePickerDialog.show()
-    }
 
-    private fun updateDeadlineButton(selected: String) {
-        binding.deadline30m.setBackgroundResource(R.drawable.bg_button_outline)
-        binding.deadline30m.setTextColor(resources.getColor(android.R.color.black, null))
-
-        binding.deadline1h.setBackgroundResource(R.drawable.bg_button_outline)
-        binding.deadline1h.setTextColor(resources.getColor(android.R.color.black, null))
-
-        binding.deadline2h.setBackgroundResource(R.drawable.bg_button_outline)
-        binding.deadline2h.setTextColor(resources.getColor(android.R.color.black, null))
-
-        binding.deadline4h.setBackgroundResource(R.drawable.bg_button_outline)
-        binding.deadline4h.setTextColor(resources.getColor(android.R.color.black, null))
-
-        binding.deadlineCustom.setBackgroundResource(R.drawable.bg_button_outline)
-        binding.deadlineCustom.setTextColor(resources.getColor(android.R.color.black, null))
-
-        when (selected) {
-            "30m" -> {
-                binding.deadline30m.setBackgroundResource(R.drawable.bg_button_teal)
-                binding.deadline30m.setTextColor(resources.getColor(android.R.color.white, null))
-            }
-            "1h" -> {
-                binding.deadline1h.setBackgroundResource(R.drawable.bg_button_teal)
-                binding.deadline1h.setTextColor(resources.getColor(android.R.color.white, null))
-            }
-            "2h" -> {
-                binding.deadline2h.setBackgroundResource(R.drawable.bg_button_teal)
-                binding.deadline2h.setTextColor(resources.getColor(android.R.color.white, null))
-            }
-            "4h" -> {
-                binding.deadline4h.setBackgroundResource(R.drawable.bg_button_teal)
-                binding.deadline4h.setTextColor(resources.getColor(android.R.color.white, null))
-            }
-            "custom" -> {
-                binding.deadlineCustom.setBackgroundResource(R.drawable.bg_button_teal)
-                binding.deadlineCustom.setTextColor(resources.getColor(android.R.color.white, null))
-            }
+        timePickerDialog.setOnCancelListener {
+            selectDeadlineRadioButton(selectedDeadline)
         }
+
+        timePickerDialog.show()
     }
 
     private fun setupListeners() {
@@ -395,13 +360,7 @@ class OrderActivity : AppCompatActivity() {
                 hasError = true
             }
 
-            // Validate price (REQUIRED now)
-            if (priceText.isEmpty()) {
-                binding.fareError.text = "Item price is required"
-                binding.fareError.visibility = View.VISIBLE
-                hasError = true
-            }
-
+            // Validate price (optional)
             var itemPrice = 0.0
             if (priceText.isNotEmpty()) {
                 try {
@@ -419,12 +378,10 @@ class OrderActivity : AppCompatActivity() {
             }
 
             if (hasError) {
-                // Medium Haptic for validation failure
                 performMediumHaptic()
                 return@setOnClickListener
             }
 
-            // Medium Haptic for successful form submission
             performMediumHaptic()
 
             // Navigate to confirmation screen with all data
@@ -449,7 +406,7 @@ class OrderActivity : AppCompatActivity() {
 
     /**
      * Light Haptic: 10ms duration, 40% amplitude
-     * Used for: Deadline button selections, time picker interactions
+     * Used for: RadioGroup selections, time picker interactions
      */
     private fun performLightHaptic() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

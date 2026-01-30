@@ -136,6 +136,7 @@ class MyLogsActivity : AppCompatActivity() {
 
     private fun navigateToRequestDetail(order: Order) {
         val intent = Intent(this, RequestDetailActivity::class.java).apply {
+            // ✅ FIX: Add ALL required intent extras (matching Homepage and RequestActivity)
             putExtra("order_id", order.id)
             putExtra("title", order.items.joinToString(", "))
             putExtra("pickup", extractLocation(order.pickupLocation, order.pickupArea))
@@ -148,11 +149,22 @@ class MyLogsActivity : AppCompatActivity() {
             putExtra("deadline", order.deadline)
             putExtra("reward_percentage", extractRewardPercentage(order).toDouble())
             putExtra("isImportant", isPriorityOrder(order.priority))
+
+            // ✅ CRITICAL: Add these missing extras
+            putExtra("fee", "₹${extractRewardPercentage(order)}")
+            putExtra("time", calculateTimeDisplay(order.deadline))
             putExtra("item_price", order.item_price)
+
+            // ✅ Status and acceptor info
             putExtra("status", order.status)
             putExtra("acceptor_email", order.acceptorEmail)
             putExtra("acceptor_name", order.acceptorName)
             putExtra("acceptor_phone", order.acceptorPhone)
+
+            // ✅ Requester info
+            putExtra("requester_email", order.posterEmail)
+            putExtra("requester_name", order.posterName)
+            putExtra("requester_phone", order.posterPhone)
         }
         startActivity(intent)
     }
@@ -166,8 +178,21 @@ class MyLogsActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } else {
-            // Otherwise show request detail
+            // Otherwise show request detail with ALL data
             navigateToRequestDetail(order)
+        }
+    }
+
+    // ✅ FIX: Add missing helper function (same as Homepage)
+    private fun calculateTimeDisplay(deadline: String?): String {
+        return when {
+            deadline == null || deadline.isEmpty() -> "ASAP"
+            deadline.contains("30") || deadline.contains("30m") -> "30 min"
+            deadline.contains("1h") || deadline.contains("60") -> "1 hour"
+            deadline.contains("2h") || deadline.contains("120") -> "2 hours"
+            deadline.contains("4h") || deadline.contains("240") -> "4 hours"
+            deadline.lowercase().contains("asap") -> "ASAP"
+            else -> deadline
         }
     }
 

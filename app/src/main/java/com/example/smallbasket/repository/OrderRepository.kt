@@ -1,12 +1,15 @@
 package com.example.smallbasket.repository
 
+import android.util.Log
 import com.example.smallbasket.api.RetrofitClient
 import com.example.smallbasket.models.*
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
 
 class OrderRepository {
     private val api = RetrofitClient.apiService
+    private val TAG = "OrderRepository"
 
     // ============================================
     // REQUEST OPERATIONS
@@ -49,28 +52,96 @@ class OrderRepository {
 
     suspend fun getUserOrders(): Result<List<Order>> {
         return try {
+            // 🔍 DEBUG: Check authentication status
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            Log.d(TAG, "getUserOrders called")
+            Log.d(TAG, "Current user: ${currentUser?.email ?: "NOT LOGGED IN"}")
+            Log.d(TAG, "User UID: ${currentUser?.uid ?: "NULL"}")
+
+            if (currentUser == null) {
+                Log.e(TAG, "⚠️ NO USER LOGGED IN - This will cause 401/500 error")
+                return Result.failure(Exception("Not authenticated. Please log in again."))
+            }
+
+            // Try to get token to verify it's valid
+            try {
+                val tokenResult = currentUser.getIdToken(false)
+                if (tokenResult.isComplete) {
+                    val token = tokenResult.result?.token
+                    if (token != null) {
+                        Log.d(TAG, "✅ Auth token available (first 20 chars): ${token.take(20)}...")
+                    } else {
+                        Log.e(TAG, "⚠️ Auth token is NULL")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "⚠️ Error checking token: ${e.message}")
+            }
+
+            Log.d(TAG, "Making API call to /request/mine...")
             val response = api.getUserOrders()
+            Log.d(TAG, "Response code: ${response.code()}")
+            Log.d(TAG, "Response successful: ${response.isSuccessful}")
+
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val orders = response.body()!!
+                Log.d(TAG, "✅ Successfully got ${orders.size} orders")
+                Result.success(orders)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
-                Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+                Log.e(TAG, "❌ API Error ${response.code()}: $errorMsg")
+
+                // Provide helpful error messages based on status code
+                val userFriendlyMsg = when(response.code()) {
+                    401 -> "Authentication failed. Please log out and log in again."
+                    403 -> "Access forbidden. Please check your account permissions."
+                    500 -> "Server error. Please try again later or contact support.\nDetails: $errorMsg"
+                    else -> "Error ${response.code()}: $errorMsg"
+                }
+
+                Result.failure(Exception(userFriendlyMsg))
             }
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Network exception: ${e.message}", e)
             Result.failure(Exception("Network error: ${e.message}"))
         }
     }
 
     suspend fun getAcceptedOrders(): Result<List<Order>> {
         return try {
+            // 🔍 DEBUG: Check authentication status
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            Log.d(TAG, "getAcceptedOrders called")
+            Log.d(TAG, "Current user: ${currentUser?.email ?: "NOT LOGGED IN"}")
+
+            if (currentUser == null) {
+                Log.e(TAG, "⚠️ NO USER LOGGED IN")
+                return Result.failure(Exception("Not authenticated. Please log in again."))
+            }
+
+            Log.d(TAG, "Making API call to /request/accepted...")
             val response = api.getAcceptedOrders()
+            Log.d(TAG, "Response code: ${response.code()}")
+
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val orders = response.body()!!
+                Log.d(TAG, "✅ Successfully got ${orders.size} accepted orders")
+                Result.success(orders)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
-                Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+                Log.e(TAG, "❌ API Error ${response.code()}: $errorMsg")
+
+                val userFriendlyMsg = when(response.code()) {
+                    401 -> "Authentication failed. Please log out and log in again."
+                    403 -> "Access forbidden. Please check your account permissions."
+                    500 -> "Server error. Please try again later.\nDetails: $errorMsg"
+                    else -> "Error ${response.code()}: $errorMsg"
+                }
+
+                Result.failure(Exception(userFriendlyMsg))
             }
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Network exception: ${e.message}", e)
             Result.failure(Exception("Network error: ${e.message}"))
         }
     }
