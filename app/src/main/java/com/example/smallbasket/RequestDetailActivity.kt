@@ -5,13 +5,23 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class RequestDetailActivity : AppCompatActivity() {
 
+    private lateinit var firestore: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase
+        firestore = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
 
         // Make status bar transparent
         window.apply {
@@ -220,13 +230,53 @@ class RequestDetailActivity : AppCompatActivity() {
         if (status == "open") {
             btnAcceptRequest.visibility = View.VISIBLE
             btnAcceptRequestInner.setOnClickListener {
-                // TODO: Implement accept delivery logic
-                // This would typically:
-                // 1. Update the order status in Firebase
-                // 2. Set acceptorEmail to current user's email
-                // 3. Set acceptorName to current user's name
-                // 4. Set acceptorPhone to current user's phone
-                // 5. Navigate back or refresh the screen
+                // Get current user
+                val currentUser = auth.currentUser
+                if (currentUser == null) {
+                    Toast.makeText(this, "Please log in to accept deliveries", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                // Disable button to prevent double clicks
+                btnAcceptRequestInner.isEnabled = false
+                btnAcceptRequestInner.text = "Accepting..."
+
+                // Get current user's profile information
+                firestore.collection("users").document(currentUser.uid)
+                    .get()
+                    .addOnSuccessListener { userDoc ->
+                        val acceptorName = userDoc.getString("name") ?: "Unknown"
+                        val acceptorPhone = userDoc.getString("phone") ?: ""
+
+                        // Update the order in Firestore
+                        val updates = hashMapOf<String, Any>(
+                            "status" to "accepted",
+                            "acceptor_email" to currentUser.email!!,
+                            "acceptor_name" to acceptorName,
+                            "acceptor_phone" to acceptorPhone,
+                            "accepted_at" to com.google.firebase.Timestamp.now()
+                        )
+
+                        firestore.collection("orders").document(orderId)
+                            .update(updates)
+                            .addOnSuccessListener {
+                                Toast.makeText(this, "Delivery accepted successfully!", Toast.LENGTH_SHORT).show()
+                                // Close the activity and return to previous screen
+                                finish()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(this, "Failed to accept delivery: ${e.message}", Toast.LENGTH_SHORT).show()
+                                // Re-enable button on failure
+                                btnAcceptRequestInner.isEnabled = true
+                                btnAcceptRequestInner.text = "Accept Delivery"
+                            }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Failed to get user info: ${e.message}", Toast.LENGTH_SHORT).show()
+                        // Re-enable button on failure
+                        btnAcceptRequestInner.isEnabled = true
+                        btnAcceptRequestInner.text = "Accept Delivery"
+                    }
             }
         } else {
             // Hide accept button if already accepted

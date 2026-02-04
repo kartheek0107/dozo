@@ -10,7 +10,9 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.View
 import android.view.WindowInsetsController
+import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.smallbasket.databinding.ActivityProfileBinding
@@ -28,12 +30,11 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val repository = OrderRepository()
-    private lateinit var vibrator: Vibrator // Added for haptic feedback
+    private lateinit var vibrator: Vibrator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Match status bar style from Homepage & RequestActivity
         setupStatusBar()
 
         binding = ActivityProfileBinding.inflate(layoutInflater)
@@ -41,7 +42,6 @@ class ProfileActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Initialize vibrator for haptic feedback
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
@@ -78,12 +78,12 @@ class ProfileActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.apply {
                 statusBarColor = Color.TRANSPARENT
-                navigationBarColor = Color.TRANSPARENT // ✅ Make navigation bar transparent
+                navigationBarColor = Color.TRANSPARENT
                 @Suppress("DEPRECATION")
                 decorView.systemUiVisibility = (
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION // ✅ Extend layout behind navigation bar
+                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         )
             }
         }
@@ -106,15 +106,127 @@ class ProfileActivity : AppCompatActivity() {
             finish()
         }
 
+        // ✅ UPDATED: Now actually opens edit dialog
         binding.btnEditProfile.setOnClickListener {
             performMediumHaptic()
-            Toast.makeText(this, "Edit Profile coming soon", Toast.LENGTH_SHORT).show()
+            showEditProfileDialog()
         }
 
         binding.btnLogout.setOnClickListener {
             performMediumHaptic()
             auth.signOut()
             redirectToLogin()
+        }
+    }
+
+    // ✅ NEW: Show dialog to edit name and phone
+    private fun showEditProfileDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_profile, null)
+
+        val etName = dialogView.findViewById<EditText>(R.id.etEditName)
+        val etPhone = dialogView.findViewById<EditText>(R.id.etEditPhone)
+
+        // Pre-fill with current values
+        etName.setText(binding.tvFullName.text.toString())
+        val currentPhone = binding.tvMobileNumber.text.toString()
+        if (currentPhone != "Not set" && currentPhone != "Not available" && currentPhone != "Error loading") {
+            etPhone.setText(currentPhone)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Edit Profile")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val newName = etName.text.toString().trim()
+                val newPhone = etPhone.text.toString().trim()
+
+                if (validateProfileInput(newName, newPhone)) {
+                    updateUserProfile(newName, newPhone)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.show()
+    }
+
+    // ✅ NEW: Validate name and phone input
+    private fun validateProfileInput(name: String, phone: String): Boolean {
+        if (name.isEmpty()) {
+            Toast.makeText(this, "Name cannot be empty", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (name.length < 2 || name.length > 100) {
+            Toast.makeText(this, "Name must be between 2 and 100 characters", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (phone.isEmpty()) {
+            Toast.makeText(this, "Phone number cannot be empty", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (phone.length < 10 || phone.length > 20) {
+            Toast.makeText(this, "Phone number must be between 10 and 20 characters", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Optional: Validate phone format (digits, spaces, +, -)
+        val phoneRegex = "^[+\\d\\s-]+$".toRegex()
+        if (!phone.matches(phoneRegex)) {
+            Toast.makeText(this, "Phone number can only contain digits, spaces, +, and -", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return true
+    }
+
+    // ✅ NEW: Update user profile in Firestore
+    private fun updateUserProfile(name: String, phone: String) {
+        val user = auth.currentUser ?: return
+
+        lifecycleScope.launch {
+            try {
+                // Show loading
+                Toast.makeText(this@ProfileActivity, "Updating profile...", Toast.LENGTH_SHORT).show()
+
+                // Update Firestore
+                firestore.collection("users")
+                    .document(user.uid)
+                    .update(
+                        mapOf(
+                            "name" to name,
+                            "phone" to phone,
+                            "updated_at" to com.google.firebase.Timestamp.now()
+                        )
+                    )
+                    .await()
+
+                // Update Firebase Auth display name
+                val profileUpdates = com.google.firebase.auth.userProfileChangeRequest {
+                    displayName = name
+                }
+                user.updateProfile(profileUpdates).await()
+
+                // Refresh UI
+                binding.tvFullName.text = name
+                binding.tvMobileNumber.text = phone
+
+                performMediumHaptic()
+                Toast.makeText(
+                    this@ProfileActivity,
+                    "✅ Profile updated successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@ProfileActivity,
+                    "❌ Error updating profile: ${e.localizedMessage}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
@@ -223,16 +335,9 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Medium Haptic: 15ms duration, 80 amplitude (0-255 scale = ~204)
-     * Used for: Button taps, secondary navigation actions
-     */
     private fun performMediumHaptic() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val effect = VibrationEffect.createOneShot(
-                15,  // 15ms duration
-                80  // ~80% amplitude (80% of 255 = 204)
-            )
+            val effect = VibrationEffect.createOneShot(15, 80)
             vibrator.vibrate(effect)
         } else {
             @Suppress("DEPRECATION")
