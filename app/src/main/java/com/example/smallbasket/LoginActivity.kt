@@ -97,6 +97,11 @@ class LoginActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
 
+                    com.example.smallbasket.notifications.NotificationManager
+                        .getInstance(this@LoginActivity)
+                        .initialize()
+
+
                     startActivity(Intent(this@LoginActivity, Homepage::class.java))
                     finish()
 

@@ -1,68 +1,202 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center"
-    android:background="#FFF3E0"
+    android:background="#F9FAFB"
+    android:fitsSystemWindows="false"
     tools:context=".DeliveryConfimationActivity">
 
-    <TextView
-        android:id="@+id/tvConfirmationTitle"
+    <!-- Teal Gradient Header Section -->
+    <LinearLayout
+        android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Delivery Confirmation"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#333333"
-        android:gravity="center"
-        android:layout_marginBottom="32dp" />
+        android:orientation="vertical"
+        android:background="@drawable/bg_teal_gradient"
+        android:paddingTop="48dp"
+        android:paddingBottom="24dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:elevation="4dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Update the status of your delivery:"
-        android:textSize="16sp"
-        android:textColor="#666666"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
+        <!-- Title Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btnMarkPickedUp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Mark as Picked Up"
-        android:textAllCaps="false"
-        android:textSize="16sp"
-        android:backgroundTint="#2196F3"
-        android:textColor="#FFFFFF"
-        android:padding="16dp"
-        android:layout_marginBottom="16dp" />
+            <TextView
+                android:id="@+id/tvConfirmationTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Delivery Confirmation"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/btnMarkDelivered"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Mark as Delivered"
-        android:textAllCaps="false"
-        android:textSize="16sp"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"
-        android:padding="16dp"
-        android:layout_marginBottom="32dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alpha="0.9"
+                android:text="Update the status of your delivery"
+                android:textColor="#E6FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
 
-    <Button
-        android:id="@+id/btnBackToHome"
+    <!-- Scrollable Content -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Back to Home"
-        android:textAllCaps="false"
-        android:textSize="16sp"
-        android:backgroundTint="#757575"
-        android:textColor="#FFFFFF"
-        android:padding="16dp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Status Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:gravity="center">
+
+                    <!-- Icon -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        app:cardCornerRadius="40dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#E0F2F1"
+                        android:layout_marginBottom="16dp">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_package"
+                            app:tint="#14B8A6" />
+                    </androidx.cardview.widget.CardView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Update Delivery Status"
+                        android:textColor="#111827"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Choose the current status of this delivery"
+                        android:textColor="#6B7280"
+                        android:textSize="14sp"
+                        android:gravity="center"
+                        android:layout_marginBottom="16dp" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Action Buttons Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Section Header -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Update Status"
+                        android:textColor="#6B7280"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Mark as Picked Up Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnMarkPickedUp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#2196F3"
+                        android:paddingVertical="14dp"
+                        android:text="Mark as Picked Up"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="16dp"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Mark as Delivered Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnMarkDelivered"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#14B8A6"
+                        android:paddingVertical="14dp"
+                        android:text="Mark as Delivered"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="16dp" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Back to Home Button (Outlined Style) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBackToHome"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#FFFFFF"
+                android:paddingVertical="14dp"
+                android:text="Back to Home"
+                android:textAllCaps="false"
+                android:textColor="#6B7280"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:cornerRadius="16dp"
+                app:strokeColor="#E5E7EB"
+                app:strokeWidth="1dp" />
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

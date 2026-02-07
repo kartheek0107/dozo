@@ -18,7 +18,6 @@ data class CreateOrderRequest(
     @SerializedName("deadline") val deadline: String,
     @SerializedName("priority") val priority: Boolean = false,
     @SerializedName("notes") val notes: String? = null
-
 )
 
 data class DeliveryRequest(
@@ -62,12 +61,12 @@ data class Order(
     @SerializedName("request_id") val id: String,
     @SerializedName("posted_by") val userId: String,
     @SerializedName("poster_email") val posterEmail: String,
-    @SerializedName("poster_name") val posterName: String? = null,
-    @SerializedName("poster_phone") val posterPhone: String? = null,
-    @SerializedName("accepted_by") val delivererId: String? = null,
-    @SerializedName("acceptor_email") val acceptorEmail: String? = null,
-    @SerializedName("acceptor_name") val acceptorName: String? = null,
-    @SerializedName("acceptor_phone") val acceptorPhone: String? = null,
+    @SerializedName("poster_name") val posterName: String,
+    @SerializedName("poster_phone") val posterPhone: String,
+    @SerializedName("accepted_by") val delivererId: String,
+    @SerializedName("acceptor_email") val acceptorEmail: String,
+    @SerializedName("acceptor_name") val acceptorName: String,
+    @SerializedName("acceptor_phone") val acceptorPhone: String,
     @SerializedName("item") val items: List<String>,
     @SerializedName("pickup_location") val pickupLocation: String,
     @SerializedName("pickup_area") val pickupArea: String,

@@ -8,8 +8,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 class RequestDetailActivity : AppCompatActivity() {
 
@@ -106,10 +108,11 @@ class RequestDetailActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvPickup).text = pickup
         findViewById<TextView>(R.id.tvDrop).text = drop
 
-        // Set best before time
+        // Set deadline time with proper formatting
         val layoutBestBefore = findViewById<LinearLayout>(R.id.layoutBestBefore)
-        if (!bestBefore.isNullOrEmpty()) {
-            findViewById<TextView>(R.id.tvBestBefore).text = bestBefore
+        if (!deadline.isNullOrEmpty()) {
+            val timeRemaining = com.example.smallbasket.utils.TimeUtils.getTimeRemaining(deadline)
+            findViewById<TextView>(R.id.tvBestBefore).text = timeRemaining
             layoutBestBefore.visibility = View.VISIBLE
         } else {
             layoutBestBefore.visibility = View.GONE
@@ -241,42 +244,32 @@ class RequestDetailActivity : AppCompatActivity() {
                 btnAcceptRequestInner.isEnabled = false
                 btnAcceptRequestInner.text = "Accepting..."
 
-                // Get current user's profile information
-                firestore.collection("users").document(currentUser.uid)
-                    .get()
-                    .addOnSuccessListener { userDoc ->
-                        val acceptorName = userDoc.getString("name") ?: "Unknown"
-                        val acceptorPhone = userDoc.getString("phone") ?: ""
+                // Use backend API instead of Firestore
+                lifecycleScope.launch {
+                    try {
+                        val repository = com.example.smallbasket.repository.OrderRepository()
+                        val result = repository.acceptOrder(orderId)
 
-                        // Update the order in Firestore
-                        val updates = hashMapOf<String, Any>(
-                            "status" to "accepted",
-                            "acceptor_email" to currentUser.email!!,
-                            "acceptor_name" to acceptorName,
-                            "acceptor_phone" to acceptorPhone,
-                            "accepted_at" to com.google.firebase.Timestamp.now()
-                        )
+                        result.onSuccess { order ->
+                            Toast.makeText(this@RequestDetailActivity, "Delivery accepted successfully!", Toast.LENGTH_SHORT).show()
+                            // Close the activity and return to previous screen
+                            finish()
+                        }
 
-                        firestore.collection("orders").document(orderId)
-                            .update(updates)
-                            .addOnSuccessListener {
-                                Toast.makeText(this, "Delivery accepted successfully!", Toast.LENGTH_SHORT).show()
-                                // Close the activity and return to previous screen
-                                finish()
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(this, "Failed to accept delivery: ${e.message}", Toast.LENGTH_SHORT).show()
-                                // Re-enable button on failure
-                                btnAcceptRequestInner.isEnabled = true
-                                btnAcceptRequestInner.text = "Accept Delivery"
-                            }
-                    }
-                    .addOnFailureListener { e ->
-                        Toast.makeText(this, "Failed to get user info: ${e.message}", Toast.LENGTH_SHORT).show()
-                        // Re-enable button on failure
+                        result.onFailure { error ->
+                            Toast.makeText(this@RequestDetailActivity, "Failed to accept delivery", Toast.LENGTH_SHORT).show()
+                            // Re-enable button on failure
+                            btnAcceptRequestInner.isEnabled = true
+                            btnAcceptRequestInner.text = "Accept Delivery"
+                        }
+
+                    } catch (e: Exception) {
+                        Toast.makeText(this@RequestDetailActivity, "Failed to accept delivery", Toast.LENGTH_SHORT).show()
+                        // Re-enable button on exception
                         btnAcceptRequestInner.isEnabled = true
                         btnAcceptRequestInner.text = "Accept Delivery"
                     }
+                }
             }
         } else {
             // Hide accept button if already accepted

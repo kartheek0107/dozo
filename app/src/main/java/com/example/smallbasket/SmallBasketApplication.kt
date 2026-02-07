@@ -49,21 +49,20 @@ class SmallBasketApplication : Application() {
         }
 
 
-        // Initialize notifications
-//        applicationScope.launch {
-//            try {
-//                val notificationManager = com.example.smallbasket.notifications.NotificationManager.getInstance(this@SmallBasketApplication)
-//                notificationManager.initialize()
-//                Log.d(TAG, "Notifications initialized")
-//
-//                // Schedule promotional notifications
-//                NotificationScheduler.schedulePromotionalNotifications(this@SmallBasketApplication)
-//
-//            } catch (e: Exception) {
-//                Log.e(TAG, "Error initializing notifications", e)
-//            }
-//        }
+        applicationScope.launch {
+            try {
+                delay(INITIALIZATION_DELAY)
+
+                val notificationManager = com.example.smallbasket.notifications.NotificationManager.getInstance(this@SmallBasketApplication)
+                notificationManager.initialize()
+                Log.d(TAG, "✅ Notifications initialized")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error initializing notifications", e)
+            }
+        }
     }
+
 
     override fun onTerminate() {
         super.onTerminate()

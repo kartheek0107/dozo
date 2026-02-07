@@ -67,7 +67,7 @@ class OrderConfirmationActivity : AppCompatActivity() {
         binding.tvOrderDrop.text = "$drop ($dropArea)"
 
         // Show base price before backend reward is fetched
-        binding.tvItemPrice.text = "Item Price: ₹${String.format("%.2f", itemPrice)}"
+        binding.tvItemPrice.text = "₹${String.format("%.2f", itemPrice)}"
 //        binding.tvDeliveryFee.text = "Delivery Fee: Calculating..."
 //        binding.tvTotalAmount.text = "Total Amount: Calculating..."
 

@@ -39,6 +39,7 @@ import com.example.smallbasket.databinding.ActivityHomepageBinding
 import com.example.smallbasket.location.*
 import com.example.smallbasket.models.Order
 import com.example.smallbasket.models.DeliveryRequest
+import com.example.smallbasket.notifications.NotificationActivity
 import com.example.smallbasket.repository.OrderRepository
 import com.example.smallbasket.repository.MapRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -167,6 +168,11 @@ class Homepage : AppCompatActivity() {
                 Log.e(TAG, "Error registering connectivity receiver", e)
             }
 
+            // NOTIFICATIONS UPDATE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requestNotificationPermission()
+            }
+
         } catch (e: Exception) {
             Log.e(TAG, "❌ FATAL: onCreate crashed", e)
             Toast.makeText(this, "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -195,8 +201,61 @@ class Homepage : AppCompatActivity() {
             }
 
             loadTopTwoRequests()
+            updateNotificationBadge()
         } catch (e: Exception) {
             Log.e(TAG, "Error in onResume", e)
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasPermission) {
+                val permissionLauncher = registerForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    if (granted) {
+                        Log.d(TAG, "✅ Notification permission granted")
+                        com.example.smallbasket.notifications.NotificationManager
+                            .getInstance(this)
+                            .initialize()
+                    } else {
+                        Log.w(TAG, "⚠️ Notification permission denied")
+                        Toast.makeText(
+                            this,
+                            "Notifications disabled. Enable in settings to get delivery alerts.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun updateNotificationBadge() {
+        try {
+            val notificationManager = com.example.smallbasket.notifications.NotificationManager
+                .getInstance(this)
+
+            val unreadCount = notificationManager.getUnreadCount()
+
+            if (unreadCount > 0) {
+                // Show badge with count
+                binding.notificationBadge?.visibility = View.VISIBLE
+                binding.notificationBadge?.text = if (unreadCount > 9) "9+" else unreadCount.toString()
+            } else {
+                // Hide badge
+                binding.notificationBadge?.visibility = View.GONE
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating notification badge", e)
         }
     }
 
