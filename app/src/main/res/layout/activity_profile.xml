@@ -7,18 +7,16 @@
     android:layout_height="match_parent"
     android:background="#F9FAFB"
     android:fillViewport="true">
-    android:theme="@style/ThemeOverlay.MaterialComponents.Light">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <!-- ✅ Gradient Header -->
         <LinearLayout
             android:id="@+id/headerCard"
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="160dp"
             android:background="@drawable/bg_teal_gradient"
             android:elevation="4dp"
             android:orientation="vertical"
@@ -28,7 +26,6 @@
             android:paddingBottom="24dp"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Back Button and Title Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -63,7 +60,7 @@
                         android:fontFamily="sans-serif-medium"
                         android:text="My Profile"
                         android:textColor="#FFFFFF"
-                        android:textSize="22sp"
+                        android:textSize="26sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -72,12 +69,11 @@
                         android:alpha="0.9"
                         android:text="Manage your account and preferences"
                         android:textColor="#E6FFFFFF"
-                        android:textSize="12sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Personal Information Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardPersonalInfo"
             android:layout_width="0dp"
@@ -95,33 +91,42 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="24dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Personal Information"
                     android:textColor="#6B7280"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="16dp"/>
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="20dp"/>
 
-                <!-- Full Name -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Full Name"
                     android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
+                    android:textSize="12sp"
+                    android:layout_marginBottom="6dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:layout_marginBottom="16dp">
+                    android:background="@drawable/bg_input_rounded"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:layout_marginBottom="20dp"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="3dp"
+                        android:layout_height="match_parent"
+                        android:background="#14B8A6"
+                        android:layout_marginEnd="13dp"/>
 
                     <TextView
                         android:id="@+id/tvFullName"
@@ -129,26 +134,34 @@
                         android:layout_height="wrap_content"
                         android:text="User Name"
                         android:textColor="#111827"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
 
-                <!-- Mobile Number -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Mobile Number"
                     android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
+                    android:textSize="12sp"
+                    android:layout_marginBottom="6dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:layout_marginBottom="16dp">
+                    android:background="@drawable/bg_input_rounded"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:layout_marginBottom="20dp"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="3dp"
+                        android:layout_height="match_parent"
+                        android:background="#14B8A6"
+                        android:layout_marginEnd="13dp"/>
 
                     <TextView
                         android:id="@+id/tvMobileNumber"
@@ -156,26 +169,34 @@
                         android:layout_height="wrap_content"
                         android:text="Loading..."
                         android:textColor="#111827"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
 
-                <!-- Email Address -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Email Address"
                     android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
+                    android:textSize="12sp"
+                    android:layout_marginBottom="6dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:layout_marginBottom="16dp">
+                    android:background="@drawable/bg_input_rounded"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:layout_marginBottom="20dp"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="3dp"
+                        android:layout_height="match_parent"
+                        android:background="#14B8A6"
+                        android:layout_marginEnd="13dp"/>
 
                     <TextView
                         android:id="@+id/tvEmailAddress"
@@ -183,28 +204,36 @@
                         android:layout_height="wrap_content"
                         android:text="email@example.com"
                         android:textColor="#111827"
-                        android:textSize="13sp"
+                        android:textSize="14sp"
                         android:textStyle="bold"
                         android:maxLines="1"
                         android:ellipsize="end"
                         android:singleLine="true"/>
                 </LinearLayout>
 
-                <!-- Joining Date -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Member Since"
                     android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginBottom="4dp"/>
+                    android:textSize="12sp"
+                    android:layout_marginBottom="6dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp">
+                    android:background="@drawable/bg_input_rounded"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="3dp"
+                        android:layout_height="match_parent"
+                        android:background="#14B8A6"
+                        android:layout_marginEnd="13dp"/>
 
                     <TextView
                         android:id="@+id/tvJoiningDate"
@@ -212,13 +241,12 @@
                         android:layout_height="wrap_content"
                         android:text="Loading..."
                         android:textColor="#111827"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Student Information Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardStudentInfo"
             android:layout_width="0dp"
@@ -237,25 +265,25 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="24dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Student Information"
                     android:textColor="#6B7280"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="16dp"/>
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="20dp"/>
 
-                <!-- Batch -->
                 <LinearLayout
                     android:id="@+id/layoutBatch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
+                    android:background="@drawable/bg_input_rounded"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
+                    android:paddingVertical="14dp"
                     android:layout_marginBottom="12dp"
                     android:visibility="gone">
 
@@ -265,18 +293,17 @@
                         android:layout_height="wrap_content"
                         android:text="Batch: 2021-2025"
                         android:textColor="#111827"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
 
-                <!-- Branch -->
                 <LinearLayout
                     android:id="@+id/layoutBranch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
+                    android:background="@drawable/bg_input_rounded"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
+                    android:paddingVertical="14dp"
                     android:layout_marginBottom="12dp"
                     android:visibility="gone">
 
@@ -286,18 +313,17 @@
                         android:layout_height="wrap_content"
                         android:text="Branch: Computer Science"
                         android:textColor="#111827"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
 
-                <!-- Section -->
                 <LinearLayout
                     android:id="@+id/layoutSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/info_field_bg"
+                    android:background="@drawable/bg_input_rounded"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
+                    android:paddingVertical="14dp"
                     android:layout_marginBottom="12dp"
                     android:visibility="gone">
 
@@ -307,18 +333,17 @@
                         android:layout_height="wrap_content"
                         android:text="Section: A"
                         android:textColor="#111827"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
 
-                <!-- DASA Status -->
                 <LinearLayout
                     android:id="@+id/layoutDasa"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/dasa_field_bg"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
+                    android:paddingVertical="14dp"
                     android:visibility="gone">
 
                     <TextView
@@ -327,13 +352,12 @@
                         android:layout_height="wrap_content"
                         android:text="🌏 DASA Student"
                         android:textColor="#EF4444"
-                        android:textSize="15sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Stats Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardStats"
             android:layout_width="0dp"
@@ -351,17 +375,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
-
+                android:padding="24dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Stats"
                     android:textColor="#6B7280"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="16dp"/>
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="20dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -369,99 +393,142 @@
                     android:orientation="horizontal"
                     android:weightSum="3">
 
-                    <!-- Deliveries -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="center"
+                        android:background="@drawable/bg_input_rounded"
+                        android:backgroundTint="#E0F2F1"
+                        android:paddingVertical="16dp"
+                        android:paddingHorizontal="4dp"
+                        android:layout_marginEnd="8dp">
 
                         <TextView
                             android:id="@+id/tvStatDeliveries"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:minHeight="40dp"
                             android:text="0"
-                            android:textColor="#111827"
-                            android:textSize="24sp"
-                            android:textStyle="bold"/>
+                            android:textColor="#14B8A6"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:lines="1"
+                            android:ellipsize="none"
+                            android:scrollHorizontally="true"
+                            android:singleLine="true"
+                            android:maxLines="1"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="8sp"
+                            android:autoSizeMaxTextSize="28sp"
+                            android:autoSizeStepGranularity="1sp"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Deliveries"
-                            android:textColor="#9CA3AF"
-                            android:textSize="11sp"
+                            android:textColor="#0F766E"
+                            android:textSize="12sp"
                             android:layout_marginTop="4dp"/>
                     </LinearLayout>
 
-                    <!-- Orders -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="center"
+                        android:background="@drawable/bg_input_rounded"
+                        android:backgroundTint="#E0F2F1"
+                        android:paddingVertical="16dp"
+                        android:paddingHorizontal="4dp"
+                        android:layout_marginEnd="8dp">
 
                         <TextView
                             android:id="@+id/tvStatOrders"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:minHeight="40dp"
                             android:text="0"
-                            android:textColor="#111827"
-                            android:textSize="24sp"
-                            android:textStyle="bold"/>
+                            android:textColor="#14B8A6"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:lines="1"
+                            android:ellipsize="none"
+                            android:scrollHorizontally="true"
+                            android:singleLine="true"
+                            android:maxLines="1"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="8sp"
+                            android:autoSizeMaxTextSize="28sp"
+                            android:autoSizeStepGranularity="1sp"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Orders"
-                            android:textColor="#9CA3AF"
-                            android:textSize="11sp"
+                            android:textColor="#0F766E"
+                            android:textSize="12sp"
                             android:layout_marginTop="4dp"/>
                     </LinearLayout>
 
-                    <!-- Earned -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="center"
+                        android:background="@drawable/bg_input_rounded"
+                        android:backgroundTint="#E0F2F1"
+                        android:paddingVertical="16dp"
+                        android:paddingHorizontal="4dp">
 
                         <TextView
                             android:id="@+id/tvStatEarned"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:minHeight="40dp"
                             android:text="₹0"
-                            android:textColor="#111827"
-                            android:textSize="24sp"
-                            android:textStyle="bold"/>
+                            android:textColor="#14B8A6"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:lines="1"
+                            android:ellipsize="none"
+                            android:scrollHorizontally="true"
+                            android:singleLine="true"
+                            android:maxLines="1"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="8sp"
+                            android:autoSizeMaxTextSize="28sp"
+                            android:autoSizeStepGranularity="1sp"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Earned"
-                            android:textColor="#9CA3AF"
-                            android:textSize="11sp"
+                            android:textColor="#0F766E"
+                            android:textSize="12sp"
                             android:layout_marginTop="4dp"/>
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Edit Profile Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnEditProfile"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:backgroundTint="#14B8A6"
-            android:paddingVertical="14dp"
+            android:paddingVertical="16dp"
             android:text="Edit Profile"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             app:cornerRadius="16dp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -469,7 +536,6 @@
             app:layout_constraintTop_toBottomOf="@id/cardStats"
             android:layout_marginHorizontal="24dp" />
 
-        <!-- Logout Button Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/logoutCard"
             android:layout_width="0dp"
@@ -488,15 +554,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@android:color/transparent"
-                android:padding="14dp"
+                android:padding="16dp"
                 android:text="Logout"
                 android:textAllCaps="false"
                 android:textColor="#DC2626"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
         </androidx.cardview.widget.CardView>
 
-        <!-- Footer -->
         <TextView
             android:id="@+id/tvFooter"
             android:layout_width="wrap_content"

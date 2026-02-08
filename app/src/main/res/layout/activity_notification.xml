@@ -7,7 +7,7 @@
     android:background="#F9FAFB"
     android:fitsSystemWindows="false">
 
-    <!-- Gradient Header with Transparent Status Bar Support -->
+    <!-- Premium Gradient Header with Transparent Status Bar Support -->
     <LinearLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
@@ -15,10 +15,10 @@
         android:orientation="vertical"
         android:background="@drawable/bg_teal_gradient"
         android:paddingTop="48dp"
-        android:paddingBottom="24dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:elevation="4dp"
+        android:paddingBottom="28dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:elevation="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -31,23 +31,31 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="4dp">
 
-            <!-- Back Button -->
-            <ImageButton
-                android:id="@+id/btnBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Back"
-                android:padding="8dp"
-                android:src="@drawable/ic_arrow_back"
-                app:tint="#FFFFFF" />
+            <!-- Back Button with Ripple Effect -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#1AFFFFFF">
 
-            <!-- Title Section -->
+                <ImageButton
+                    android:id="@+id/btnBack"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Back"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_arrow_back"
+                    app:tint="#FFFFFF" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Title Section with Enhanced Typography -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="12dp"
                 android:orientation="vertical">
 
                 <TextView
@@ -55,47 +63,86 @@
                     android:layout_height="wrap_content"
                     android:text="Notifications"
                     android:textColor="#FFFFFF"
-                    android:textSize="26sp"
+                    android:textSize="28sp"
                     android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium" />
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="2dp"
                     android:text="Stay updated with your activities"
                     android:textColor="#E6FFFFFF"
                     android:textSize="13sp"
-                    android:alpha="0.9" />
+                    android:alpha="0.95"
+                    android:fontFamily="sans-serif" />
             </LinearLayout>
 
-            <!-- Mark All Read Button -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="#0F766E">
+            <!-- Mark All Read Button with Badge Container -->
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
 
-                <ImageButton
-                    android:id="@+id/btnMarkAllRead"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Mark all as read"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_done_all"
-                    app:tint="#FFFFFF" />
-            </androidx.cardview.widget.CardView>
+                <androidx.cardview.widget.CardView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    app:cardCornerRadius="22dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#0F766E">
+
+                    <ImageButton
+                        android:id="@+id/btnMarkAllRead"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Mark all as read"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_done_all"
+                        app:tint="#FFFFFF" />
+                </androidx.cardview.widget.CardView>
+
+                <!-- Unread Count Badge - Shows only when there are unread notifications -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/tvNotificationCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-4dp"
+                    android:layout_marginEnd="-4dp"
+                    android:minWidth="22dp"
+                    android:visibility="gone"
+                    app:cardCornerRadius="11dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#EF4444"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="2dp"
+                        android:minWidth="22dp"
+                        tools:text="5" />
+                </androidx.cardview.widget.CardView>
+            </FrameLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Notifications List Section -->
-    <ScrollView
+    <!-- Notifications List Section with NestedScrollView for Smooth Scrolling -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
         android:clipToPadding="false"
+        android:scrollbars="none"
+        android:overScrollMode="never"
         app:layout_constraintTop_toBottomOf="@id/headerLayout"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -105,18 +152,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingTop="16dp"
-            android:paddingBottom="24dp">
+            android:paddingTop="20dp"
+            android:paddingBottom="32dp"
+            android:paddingHorizontal="16dp">
 
-            <!-- Notifications RecyclerView Container -->
+            <!-- Premium Notifications RecyclerView Container -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/notificationsCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp"
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
@@ -124,42 +170,49 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <!-- Section Header -->
+                    <!-- Enhanced Section Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:padding="16dp"
+                        android:padding="20dp"
                         android:gravity="center_vertical">
 
+                        <!-- Icon -->
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#E6F7F5">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_logo"
+                                app:tint="#14B8A6" />
+                        </androidx.cardview.widget.CardView>
+
+                        <!-- Title -->
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Recent Notifications"
+                            android:layout_marginStart="12dp"
+                            android:text="Recent Activity"
                             android:textColor="#111827"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvNotificationCount"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textColor="#14B8A6"
-                            android:textSize="14sp"
+                            android:textSize="17sp"
                             android:textStyle="bold"
-                            android:background="@drawable/notification_badge_bg"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp" />
+                            android:fontFamily="sans-serif-medium" />
                     </LinearLayout>
 
-                    <!-- Divider -->
+                    <!-- Elegant Divider -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="#F3F4F6"
-                        android:layout_marginHorizontal="16dp" />
+                        android:layout_marginHorizontal="20dp" />
 
                     <!-- RecyclerView for Notifications -->
                     <androidx.recyclerview.widget.RecyclerView
@@ -167,69 +220,83 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:clipToPadding="false"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:paddingHorizontal="8dp"
                         android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
                         tools:listitem="@layout/item_notification" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Empty State -->
+            <!-- Premium Empty State -->
             <LinearLayout
                 android:id="@+id/tvEmptyState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:padding="48dp"
+                android:padding="56dp"
                 android:visibility="gone"
                 tools:visibility="visible">
 
-                <!-- Empty State Icon -->
+                <!-- Premium Empty State Icon -->
                 <androidx.cardview.widget.CardView
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    app:cardCornerRadius="60dp"
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    app:cardCornerRadius="70dp"
                     app:cardElevation="0dp"
                     app:cardBackgroundColor="#F3F4F6">
 
-                    <ImageView
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
                         android:layout_gravity="center"
-                        android:src="@drawable/ic_notification"
-                        android:alpha="0.4"
-                        app:tint="#9CA3AF" />
+                        app:cardCornerRadius="40dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#E6F7F5">
+
+                        <ImageView
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_logo"
+                            android:alpha="0.7"
+                            app:tint="#14B8A6" />
+                    </androidx.cardview.widget.CardView>
                 </androidx.cardview.widget.CardView>
 
                 <!-- Empty State Title -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="No notifications yet"
-                    android:textSize="20sp"
+                    android:layout_marginTop="28dp"
+                    android:text="All Clear!"
+                    android:textSize="24sp"
                     android:textStyle="bold"
-                    android:textColor="#111827" />
+                    android:textColor="#111827"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.01" />
 
                 <!-- Empty State Description -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="You'll see updates here when you get them"
-                    android:textSize="14sp"
+                    android:layout_marginTop="12dp"
+                    android:text="You're all caught up!\nNo notifications at the moment"
+                    android:textSize="15sp"
                     android:textColor="#6B7280"
                     android:gravity="center"
-                    android:alpha="0.8" />
+                    android:lineSpacingExtra="4dp"
+                    android:alpha="0.9" />
 
-                <!-- Optional Action Button -->
+                <!-- Premium Action Button -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
+                    android:layout_marginTop="32dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="2dp"
                     app:cardBackgroundColor="#14B8A6">
 
                     <Button
@@ -239,23 +306,23 @@
                         android:text="Refresh"
                         android:textColor="#FFFFFF"
                         android:textStyle="bold"
-                        android:textSize="14sp"
-                        android:paddingHorizontal="24dp"
-                        android:paddingVertical="12dp"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:paddingHorizontal="32dp"
+                        android:paddingVertical="14dp"
                         android:background="@android:color/transparent"
-                        android:textAllCaps="false" />
+                        android:textAllCaps="false"
+                        android:letterSpacing="0.02" />
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
 
-            <!-- Info Card (Optional - helpful tips) -->
+            <!-- Enhanced Info Card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/infoCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
                 android:layout_marginTop="16dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="#EFF6FF">
 
@@ -263,20 +330,31 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
+                    android:padding="20dp"
                     android:gravity="center_vertical">
 
-                    <ImageView
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/ic_noti"
-                        app:tint="#3B82F6" />
+                    <!-- Icon -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#DBEAFE">
 
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_noti"
+                            app:tint="#3B82F6" />
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- Content -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="16dp"
                         android:orientation="vertical">
 
                         <TextView
@@ -284,21 +362,23 @@
                             android:layout_height="wrap_content"
                             android:text="Stay Connected"
                             android:textColor="#1E40AF"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="Get instant updates about new delivery requests and order status"
                             android:textColor="#3B82F6"
-                            android:textSize="12sp"
-                            android:alpha="0.8" />
+                            android:textSize="13sp"
+                            android:lineSpacingExtra="2dp"
+                            android:alpha="0.85" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

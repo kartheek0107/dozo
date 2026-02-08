@@ -52,13 +52,17 @@ class DeliveryConfimationActivity : AppCompatActivity() {
     private fun setupStatusBar() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.apply {
+                // ✅ TOP BAR: Transparent
                 statusBarColor = Color.TRANSPARENT
-                // ✅ REMOVED: navigationBarColor = Color.TRANSPARENT (keeps nav bar normal)
+
+                // ✅ BOTTOM BAR: Opaque white
+                navigationBarColor = getColor(R.color.white)
+
                 @Suppress("DEPRECATION")
                 decorView.systemUiVisibility = (
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        // ✅ REMOVED: or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION (stops blending)
+                        // ❌ REMOVED: or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         )
             }
         }

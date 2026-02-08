@@ -154,7 +154,7 @@ class OrderActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.apply {
                 statusBarColor = Color.TRANSPARENT
-                navigationBarColor = Color.TRANSPARENT
+                navigationBarColor = getColor(R.color.white)
                 @Suppress("DEPRECATION")
                 decorView.systemUiVisibility = (
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE

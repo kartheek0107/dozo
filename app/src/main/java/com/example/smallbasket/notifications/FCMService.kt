@@ -5,15 +5,30 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.smallbasket.R
 import com.example.smallbasket.Homepage
+import com.example.smallbasket.RequestActivity
+import com.example.smallbasket.RequestDetailActivity
+import com.example.smallbasket.MyLogsActivity
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
+/**
+ * PREMIUM FCM Service with:
+ * - ✅ App logo as small icon (white monochrome)
+ * - ✅ User name instead of email in notifications
+ * - ✅ Sound and vibration patterns
+ * - ✅ Type-specific large icons
+ * - ✅ Action buttons
+ * - ✅ Rich notification content
+ */
 class FCMService : FirebaseMessagingService() {
 
     companion object {
@@ -37,6 +52,8 @@ class FCMService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.d(TAG, "📨 Message received from: ${message.from}")
+        Log.d(TAG, "📋 Data: ${message.data}")
+        Log.d(TAG, "📋 Notification: ${message.notification}")
 
         // Create notification channels first
         createNotificationChannels()
@@ -48,7 +65,7 @@ class FCMService : FirebaseMessagingService() {
         val body = data["body"] ?: message.notification?.body ?: ""
         val orderId = data["order_id"] ?: data["request_id"]
 
-        Log.d(TAG, "📋 Notification - Type: $type, Title: $title")
+        Log.d(TAG, "📋 Parsed - Type: $type, Title: $title, OrderID: $orderId")
 
         // Create notification data object
         val notificationData = NotificationData(
@@ -74,6 +91,13 @@ class FCMService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+            // Custom notification sound
+            val soundUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build()
+
             // Channel 1: New Delivery Requests (HIGH priority)
             val channelNewRequests = NotificationChannel(
                 CHANNEL_NEW_REQUESTS,
@@ -82,9 +106,11 @@ class FCMService : FirebaseMessagingService() {
             ).apply {
                 description = "Notifications for new delivery requests in your area"
                 enableLights(true)
-                lightColor = android.graphics.Color.parseColor("#009688")
+                lightColor = android.graphics.Color.parseColor("#14B8A6")
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 250, 250, 250)
+                vibrationPattern = longArrayOf(0, 250, 200, 250)
+                setSound(soundUri, audioAttributes)
+                setShowBadge(true)
             }
 
             // Channel 2: Order Updates (DEFAULT priority)
@@ -95,8 +121,11 @@ class FCMService : FirebaseMessagingService() {
             ).apply {
                 description = "Updates about your orders (accepted, completed, cancelled)"
                 enableLights(true)
-                lightColor = android.graphics.Color.parseColor("#009688")
+                lightColor = android.graphics.Color.parseColor("#14B8A6")
                 enableVibration(true)
+                vibrationPattern = longArrayOf(0, 200, 150, 200)
+                setSound(soundUri, audioAttributes)
+                setShowBadge(true)
             }
 
             // Channel 3: General Notifications (LOW priority)
@@ -106,6 +135,7 @@ class FCMService : FirebaseMessagingService() {
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "General app notifications and announcements"
+                setShowBadge(false)
             }
 
             // Register all channels
@@ -128,8 +158,7 @@ class FCMService : FirebaseMessagingService() {
         // Create the appropriate intent based on notification type
         val intent = when (data.type) {
             "new_request" -> {
-                // For now, open Homepage. Update this to RequestDetailActivity when available
-                Intent(this, Homepage::class.java).apply {
+                Intent(this, RequestActivity::class.java).apply {
                     putExtra("REQUEST_ID", data.orderId)
                     putExtra("PICKUP_AREA", data.pickupArea)
                     putExtra("DROP_AREA", data.dropArea)
@@ -137,8 +166,12 @@ class FCMService : FirebaseMessagingService() {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
             }
+            "request_accepted", "request_completed", "request_cancelled" -> {
+                Intent(this, MyLogsActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            }
             else -> {
-                // Open Homepage for other notifications
                 Intent(this, Homepage::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
@@ -148,17 +181,21 @@ class FCMService : FirebaseMessagingService() {
         // Create pending intent
         val pendingIntent = PendingIntent.getActivity(
             this,
-            System.currentTimeMillis().toInt(), // Unique request code
+            System.currentTimeMillis().toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Build the notification
+        // ✅ FIX 1: Always use simple white icon as small icon (notification bar)
+        // This should be a simple white monochrome icon (Android requirement)
+        val smallIconRes = R.drawable.ic_logo  // Make sure this is WHITE
+
+        // Build the notification with premium features
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_notification) // Your notification icon
+            .setSmallIcon(smallIconRes)  // ✅ White app logo in status bar
             .setContentTitle(data.title)
             .setContentText(data.body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(data.body)) // Expandable text
+            .setStyle(NotificationCompat.BigTextStyle().bigText(data.body))
             .setPriority(
                 if (data.priority == "HIGH")
                     NotificationCompat.PRIORITY_HIGH
@@ -166,12 +203,63 @@ class FCMService : FirebaseMessagingService() {
                     NotificationCompat.PRIORITY_DEFAULT
             )
             .setContentIntent(pendingIntent)
-            .setAutoCancel(true) // Dismiss when tapped
-            .setColor(android.graphics.Color.parseColor("#009688")) // Teal color
+            .setAutoCancel(true)
+            .setColor(android.graphics.Color.parseColor("#14B8A6"))
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setGroup("SMALLBASKET_NOTIFICATIONS")
 
-        // Add sound and vibration for high priority notifications
-        if (data.priority == "HIGH") {
-            notificationBuilder.setDefaults(NotificationCompat.DEFAULT_ALL)
+        // ✅ FIX 2: Add type-specific colored large icon (shows in notification drawer)
+        try {
+            val largeIconRes = when (data.type) {
+                "new_request" -> R.drawable.ic_shopping_cart
+                "request_accepted" -> R.drawable.ic_done
+                "request_completed" -> R.drawable.ic_done_all
+                "request_cancelled" -> R.drawable.ic_close
+                else -> R.drawable.ic_logo
+            }
+
+            val largeIcon = android.graphics.BitmapFactory.decodeResource(
+                resources,
+                largeIconRes
+            )
+            notificationBuilder.setLargeIcon(largeIcon)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set large icon", e)
+        }
+
+        // Add action buttons for new requests
+        if (data.type == "new_request" && data.orderId != null) {
+            val viewIntent = Intent(this, RequestDetailActivity::class.java).apply {
+                putExtra("order_id", data.orderId)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val viewPendingIntent = PendingIntent.getActivity(
+                this,
+                (System.currentTimeMillis() + 1).toInt(),
+                viewIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            notificationBuilder.addAction(
+                R.drawable.ic_arrow_forward,
+                "View Details",
+                viewPendingIntent
+            )
+        }
+
+        // Add inbox style for multiple notifications
+        if (data.type == "new_request") {
+            val inboxStyle = NotificationCompat.InboxStyle()
+                .setBigContentTitle(data.title)
+                .addLine("📍 ${data.pickupArea ?: "Unknown"} → ${data.dropArea ?: "Unknown"}")
+            if (data.reward != null) {
+                inboxStyle.addLine("💰 Reward: ₹${data.reward}")
+            }
+            if (data.deadline != null) {
+                inboxStyle.addLine("⏰ ${data.deadline}")
+            }
+            notificationBuilder.setStyle(inboxStyle)
         }
 
         // Show the notification

@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Enhanced notification badge with gradient -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
-    <solid android:color="@color/red_500" />
+    <gradient
+        android:startColor="#EF4444"
+        android:endColor="#DC2626"
+        android:angle="135"
+        android:type="linear" />
+    <size
+        android:width="22dp"
+        android:height="22dp" />
 </shape>

@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.lifecycle.lifecycleScope
+import com.example.smallbasket.repository.OrderRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -17,6 +18,7 @@ class RequestDetailActivity : AppCompatActivity() {
 
     private lateinit var firestore: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
+    private val orderRepository = OrderRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +39,86 @@ class RequestDetailActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_request_details)
 
-        // Get all data from intent
+        // Get order_id from intent
+        val orderId = intent.getStringExtra("order_id")
+
+        if (orderId != null && !hasAllRequiredData()) {
+            // If we only have order_id (from notification), fetch full order data from backend
+            fetchOrderFromBackend(orderId)
+        } else {
+            // We have all data from intent, use it directly
+            loadOrderFromIntent()
+        }
+
+        // Setup back button
+        findViewById<ImageView>(R.id.btnBack).setOnClickListener {
+            onBackPressed()
+        }
+    }
+
+    /**
+     * Check if we have all required data in the intent
+     */
+    private fun hasAllRequiredData(): Boolean {
+        return intent.hasExtra("title") &&
+                intent.hasExtra("pickup") &&
+                intent.hasExtra("drop")
+    }
+
+    /**
+     * Fetch order details from backend using order_id
+     */
+    private fun fetchOrderFromBackend(orderId: String) {
+        // Show loading state
+        findViewById<View>(R.id.cardContent)?.alpha = 0.5f
+        Toast.makeText(this, "Loading order details...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            val result = orderRepository.getOrder(orderId)
+
+            result.onSuccess { order ->
+                // Hide loading state
+                findViewById<View>(R.id.cardContent)?.alpha = 1.0f
+
+                // Populate UI with fetched data
+                initializeViews(
+                    title = order.items.joinToString(", "),
+                    pickup = extractLocation(order.pickupLocation, order.pickupArea),
+                    drop = extractLocation(order.dropLocation, order.dropArea),
+                    details = order.notes ?: "",
+                    priority = if (order.priorityFlag) "emergency" else "normal",
+                    bestBefore = order.bestBefore,
+                    deadline = order.deadline,
+                    fee = "₹${order.reward.toInt()}",
+                    isImportant = order.priorityFlag,
+                    itemPrice = order.item_price,
+                    status = order.status
+                )
+
+                // Populate requester and acceptor info
+                populateRequesterInfo(order.posterName, order.posterEmail, order.posterPhone)
+                populateAcceptorInfo(order.acceptorEmail, order.acceptorName, order.acceptorPhone, order.status)
+
+                // Setup accept button
+                setupAcceptButton(orderId, order.status)
+            }
+
+            result.onFailure { error ->
+                findViewById<View>(R.id.cardContent)?.alpha = 1.0f
+                Toast.makeText(
+                    this@RequestDetailActivity,
+                    "Failed to load order: ${error.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+                finish()
+            }
+        }
+    }
+
+    /**
+     * Load order data from intent extras (original behavior)
+     */
+    private fun loadOrderFromIntent() {
         val orderId = intent.getStringExtra("order_id") ?: ""
         val title = intent.getStringExtra("title") ?: ""
         val pickup = intent.getStringExtra("pickup") ?: ""
@@ -75,13 +156,17 @@ class RequestDetailActivity : AppCompatActivity() {
         populateRequesterInfo(requesterName, requesterEmail, requesterPhone)
         populateAcceptorInfo(acceptorEmail, acceptorName, acceptorPhone, status)
 
-        // Setup back button
-        findViewById<ImageView>(R.id.btnBack).setOnClickListener {
-            onBackPressed()
-        }
-
         // Setup accept button (if status is "open")
         setupAcceptButton(orderId, status)
+    }
+
+    private fun extractLocation(location: String?, area: String?): String {
+        return when {
+            location.isNullOrBlank() && area.isNullOrBlank() -> "Unknown"
+            location.isNullOrBlank() -> area!!
+            area.isNullOrBlank() -> location
+            else -> "$location, $area"
+        }
     }
 
     private fun initializeViews(
@@ -247,8 +332,7 @@ class RequestDetailActivity : AppCompatActivity() {
                 // Use backend API instead of Firestore
                 lifecycleScope.launch {
                     try {
-                        val repository = com.example.smallbasket.repository.OrderRepository()
-                        val result = repository.acceptOrder(orderId)
+                        val result = orderRepository.acceptOrder(orderId)
 
                         result.onSuccess { order ->
                             Toast.makeText(this@RequestDetailActivity, "Delivery accepted successfully!", Toast.LENGTH_SHORT).show()
