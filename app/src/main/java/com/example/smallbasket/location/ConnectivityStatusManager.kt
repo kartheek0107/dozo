@@ -6,10 +6,12 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import com.example.smallbasket.api.RetrofitClient
 import com.example.smallbasket.models.ConnectivityUpdateRequest
+import com.example.smallbasket.models.DeviceInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -181,6 +183,13 @@ class ConnectivityStatusManager private constructor(private val context: Context
     /**
      * ✅ UPDATED: Now sends device_id to backend
      */
+    /**
+     * FIXED: Make device_id required
+     */
+    /**
+     * Update connectivity status with proper device info
+     * FIXED: Use DeviceInfo data class instead of Map
+     */
     private suspend fun updateConnectivityStatus() {
         try {
             val isConnected = checkInternetConnectivity()
@@ -192,11 +201,38 @@ class ConnectivityStatusManager private constructor(private val context: Context
             Log.d(TAG, "Device ID: $deviceId")
             Log.d(TAG, "Will be reachable: ${isConnected && hasLocationPermission}")
 
-            // ✅ CRITICAL: Send device_id to backend
+            // FIXED: Validate device_id before sending
+            if (deviceId == "unknown" || deviceId.isEmpty()) {
+                Log.e(TAG, "❌ Invalid device_id, cannot update connectivity")
+                return
+            }
+
+            // ✅ FIXED: Create DeviceInfo object instead of Map
+            val deviceInfo = try {
+                DeviceInfo(
+                    os = "Android",
+                    model = Build.MODEL,
+                    appVersion = context.packageManager
+                        .getPackageInfo(context.packageName, 0)
+                        .versionName,
+                    manufacturer = Build.MANUFACTURER
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not get full device info", e)
+                DeviceInfo(
+                    os = "Android",
+                    model = android.os.Build.MODEL,
+                    appVersion = "unknown",
+                    manufacturer = android.os.Build.MANUFACTURER
+                )
+            }
+
+            // ✅ FIXED: Use ConnectivityUpdateRequest with DeviceInfo
             val request = ConnectivityUpdateRequest(
                 isConnected = isConnected,
                 locationPermissionGranted = hasLocationPermission,
-                deviceId = deviceId  // ✅ This enables accurate device counting!
+                deviceId = deviceId,
+                deviceInfo = deviceInfo  // ✅ Now using DeviceInfo object
             )
 
             val response = api.updateConnectivity(request)

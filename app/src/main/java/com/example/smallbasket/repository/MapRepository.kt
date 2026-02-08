@@ -81,16 +81,18 @@ class MapRepository {
      */
     suspend fun getReachableUsersCount(
         area: String? = null,
-        countByDevice: Boolean = true
+        countByDevice: Boolean = true,
+        includeNearby: Boolean = true // FIXED: New parameter
     ): Result<Int> {
         val startTime = System.currentTimeMillis()
         return try {
             Log.d(TAG, "⏱️ [START] Fetching reachable count...")
             Log.d(TAG, "  Area filter: ${area ?: "all"}")
             Log.d(TAG, "  Count by device: $countByDevice")
+            Log.d(TAG, "  Include nearby: $includeNearby")
 
             val apiStartTime = System.currentTimeMillis()
-            val response = api.getReachableUsersCount(area, countByDevice)
+            val response = api.getReachableUsersCount(area, countByDevice, includeNearby)
             val apiDuration = System.currentTimeMillis() - apiStartTime
 
             Log.d(TAG, "⏱️ API call took ${apiDuration}ms")
@@ -102,19 +104,22 @@ class MapRepository {
 
                 Log.d(TAG, "✅ SUCCESS! Count: $count")
                 Log.d(TAG, "⏱️ TOTAL took ${totalDuration}ms")
-                Log.d(TAG, "  Counting method: ${body.countingMethod}")
-                Log.d(TAG, "  Area: ${body.area}")
-                Log.d(TAG, "  Message: ${body.message}")
 
                 Result.success(count)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
-                Log.e(TAG, "❌ Failed to get count: $errorMsg")
-                Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+                Log.e(TAG, "❌ Failed: HTTP ${response.code()}: $errorMsg")
+
+                // FIXED: Parse 429 rate limit error
+                if (response.code() == 429) {
+                    Result.failure(Exception("Rate limit exceeded. Please wait before refreshing again."))
+                } else {
+                    Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+                }
             }
         } catch (e: Exception) {
             val totalDuration = System.currentTimeMillis() - startTime
-            Log.e(TAG, "❌ Exception getting reachable count (took ${totalDuration}ms)", e)
+            Log.e(TAG, "❌ Exception (took ${totalDuration}ms)", e)
             Result.failure(Exception("Network error: ${e.message}"))
         }
     }
@@ -126,14 +131,14 @@ class MapRepository {
      * @return Map of area name to count
      */
     suspend fun getReachableUsersByArea(
-        countByDevice: Boolean = true
+        countByDevice: Boolean = true,
+        includeNearby: Boolean = true // FIXED: New parameter
     ): Result<Map<String, Int>> {
         val startTime = System.currentTimeMillis()
         return try {
-            Log.d(TAG, "⏱️ [START] Fetching reachable users by area...")
-            Log.d(TAG, "  Count by device: $countByDevice")
+            Log.d(TAG, "⏱️ [START] Fetching by area...")
 
-            val response = api.getReachableUsersByArea(countByDevice)
+            val response = api.getReachableUsersByArea(countByDevice, includeNearby)
             val duration = System.currentTimeMillis() - startTime
 
             if (response.isSuccessful && response.body() != null) {
@@ -141,15 +146,16 @@ class MapRepository {
                 val areaCounts = body.areaCounts
 
                 Log.d(TAG, "✅ SUCCESS! (took ${duration}ms)")
-                Log.d(TAG, "  Area breakdown: $areaCounts")
-                Log.d(TAG, "  Counting method: ${body.countingMethod}")
-                Log.d(TAG, "  Note: ${body.note}")
-
                 Result.success(areaCounts)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Unknown error"
                 Log.e(TAG, "❌ Failed (took ${duration}ms): $errorMsg")
-                Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+
+                if (response.code() == 429) {
+                    Result.failure(Exception("Rate limit exceeded"))
+                } else {
+                    Result.failure(Exception("Error ${response.code()}: $errorMsg"))
+                }
             }
         } catch (e: Exception) {
             val duration = System.currentTimeMillis() - startTime

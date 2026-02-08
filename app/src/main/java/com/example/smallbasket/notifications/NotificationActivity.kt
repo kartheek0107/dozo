@@ -10,6 +10,8 @@ import android.view.WindowInsetsController
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.smallbasket.databinding.ActivityNotificationBinding
 import com.example.smallbasket.RequestDetailActivity
@@ -24,11 +26,14 @@ class NotificationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // Setup transparent status bar BEFORE setContentView
-        setupStatusBar()
+        setupTransparentStatusBar()
         enableEdgeToEdge()
 
         binding = ActivityNotificationBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Handle window insets for edge-to-edge
+        setupWindowInsets()
 
         notificationManager = NotificationManager.getInstance(this)
 
@@ -38,30 +43,53 @@ class NotificationActivity : AppCompatActivity() {
     }
 
     /**
-     * Setup transparent status bar matching Homepage design
+     * Setup fully transparent status bar with light icons
      */
-    private fun setupStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.apply {
-                statusBarColor = Color.TRANSPARENT
-                @Suppress("DEPRECATION")
-                decorView.systemUiVisibility = (
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        )
-            }
+    private fun setupTransparentStatusBar() {
+        window.apply {
+            // Make status bar fully transparent
+            statusBarColor = Color.TRANSPARENT
+
+            // Enable drawing behind status bar
+            decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    )
         }
 
-        // Make status bar icons dark/light based on background
+        // Set light status bar icons (white) for dark gradient background
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // For Android 11 and above
             window.insetsController?.setSystemBarsAppearance(
-                0, // Dark icons for light background, 0 for light icons on dark background
+                0, // 0 = light icons (white), APPEARANCE_LIGHT_STATUS_BARS = dark icons
                 WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
             )
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // For Android 6 to 10
             @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            var flags = window.decorView.systemUiVisibility
+            // Remove light status bar flag to get white icons
+            flags = flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            window.decorView.systemUiVisibility = flags
+        }
+    }
+
+    /**
+     * Handle window insets for proper edge-to-edge layout
+     */
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            // Apply top padding to header to account for status bar
+            binding.headerLayout.setPadding(
+                binding.headerLayout.paddingLeft,
+                systemBars.top + resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_height) / 3,
+                binding.headerLayout.paddingRight,
+                binding.headerLayout.paddingBottom
+            )
+
+            insets
         }
     }
 

@@ -131,7 +131,8 @@ interface ApiService {
     @GET("users/reachable-count")
     suspend fun getReachableUsersCount(
         @Query("area") area: String? = null,
-        @Query("count_by_device") countByDevice: Boolean = true
+        @Query("count_by_device") countByDevice: Boolean = true,
+        @Query("include_nearby") includeNearby: Boolean = true // FIXED
     ): Response<ReachableCountResponse>
 
     /**
@@ -143,7 +144,8 @@ interface ApiService {
      */
     @GET("users/reachable-by-area")
     suspend fun getReachableUsersByArea(
-        @Query("count_by_device") countByDevice: Boolean = true
+        @Query("count_by_device") countByDevice: Boolean = true,
+        @Query("include_nearby") includeNearby: Boolean = true // FIXED
     ): Response<ReachableByAreaResponse>
 
     // ============================================

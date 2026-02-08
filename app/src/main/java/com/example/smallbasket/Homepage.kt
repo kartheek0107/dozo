@@ -46,9 +46,15 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import java.util.Calendar
 
 class Homepage : AppCompatActivity() {
+
+    private var lastCountRefreshTime = 0L
+    private val COUNT_REFRESH_COOLDOWN_MS = 10_000L // 10 seconds minimum between refreshes
+
 
     companion object {
         private const val TAG = "Homepage"
@@ -74,24 +80,19 @@ class Homepage : AppCompatActivity() {
     private val connectivityReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val connected = intent?.getBooleanExtra("connected", false) ?: false
-            Log.d(TAG, "📡 Connectivity changed: $connected")
 
-            // ✅ CHANGED: Don't auto-refresh, just log the change
             if (!connected) {
-                // Only update UI when going offline
                 runOnUiThread {
                     binding.tvOnlineUsers.text = "0"
                     onlineUsersSwitcher.displayedChild = 1
                 }
             }
-            // When coming online, don't auto-refresh - wait for manual refresh
         }
     }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        Log.d(TAG, "Permission result: $permissions")
         if (::permissionManager.isInitialized) {
             permissionManager.handlePermissionResult(permissions)
         }
@@ -110,7 +111,6 @@ class Homepage : AppCompatActivity() {
             setContentView(binding.root)
 
             deviceId = getUniqueDeviceId()
-            Log.d(TAG, "📱 Device ID: $deviceId")
 
             initializeHaptics()
             initializeLocationTracking()
@@ -126,12 +126,10 @@ class Homepage : AppCompatActivity() {
 
             onlineUsersSwitcher.displayedChild = 0
 
-            // ✅ FIX: Load data on startup
             loadTopTwoRequests()
 
-            // Load online count after a short delay (let connectivity sync first)
             lifecycleScope.launch {
-                delay(2000) // Wait 2 seconds for connectivity to establish
+                delay(2000)
                 refreshOnlineUserCount()
             }
 
@@ -149,13 +147,12 @@ class Homepage : AppCompatActivity() {
                 Log.w(TAG, "onlineUsersCard not found in layout", e)
             }
 
-            // ✅ FIX: Android 13+ requires explicit receiver export flag
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     registerReceiver(
                         connectivityReceiver,
                         IntentFilter("com.example.smallbasket.CONNECTIVITY_CHANGED"),
-                        Context.RECEIVER_NOT_EXPORTED  // Our custom broadcast, not for other apps
+                        Context.RECEIVER_NOT_EXPORTED
                     )
                 } else {
                     registerReceiver(
@@ -163,18 +160,15 @@ class Homepage : AppCompatActivity() {
                         IntentFilter("com.example.smallbasket.CONNECTIVITY_CHANGED")
                     )
                 }
-                Log.d(TAG, "✅ Connectivity receiver registered")
             } catch (e: Exception) {
-                Log.e(TAG, "Error registering connectivity receiver", e)
+
             }
 
-            // NOTIFICATIONS UPDATE
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 requestNotificationPermission()
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "❌ FATAL: onCreate crashed", e)
             Toast.makeText(this, "Startup error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
@@ -185,13 +179,10 @@ class Homepage : AppCompatActivity() {
         try {
             if (::permissionManager.isInitialized) {
                 if (!permissionManager.hasAllPermissions()) {
-                    Log.d(TAG, "⚠️ Permissions missing on resume, requesting...")
                     requestPermissions()
                 } else if (!LocationUtils.isLocationEnabled(this)) {
-                    Log.d(TAG, "⚠️ Location services disabled, showing dialog...")
                     permissionManager.showLocationServicesDialog()
                 } else {
-                    // ✅ CHANGED: Only update connectivity, don't auto-refresh count
                     lifecycleScope.launch {
                         if (::connectivityManager.isInitialized) {
                             connectivityManager.forceUpdate()
@@ -219,12 +210,10 @@ class Homepage : AppCompatActivity() {
                     ActivityResultContracts.RequestPermission()
                 ) { granted ->
                     if (granted) {
-                        Log.d(TAG, "✅ Notification permission granted")
                         com.example.smallbasket.notifications.NotificationManager
                             .getInstance(this)
                             .initialize()
                     } else {
-                        Log.w(TAG, "⚠️ Notification permission denied")
                         Toast.makeText(
                             this,
                             "Notifications disabled. Enable in settings to get delivery alerts.",
@@ -246,11 +235,9 @@ class Homepage : AppCompatActivity() {
             val unreadCount = notificationManager.getUnreadCount()
 
             if (unreadCount > 0) {
-                // Show badge with count
                 binding.notificationBadge?.visibility = View.VISIBLE
                 binding.notificationBadge?.text = if (unreadCount > 9) "9+" else unreadCount.toString()
             } else {
-                // Hide badge
                 binding.notificationBadge?.visibility = View.GONE
             }
 
@@ -333,15 +320,12 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun initializeLocationTracking() {
-        Log.d(TAG, "=== Initializing Location Tracking ===")
-
         try {
             locationCoordinator = LocationTrackingCoordinator.getInstance(this)
             permissionManager = LocationPermissionManager(this)
             permissionManager.setPermissionLauncher(permissionLauncher)
             connectivityManager = ConnectivityStatusManager.getInstance(applicationContext)
 
-            Log.d(TAG, "✅ Location components initialized")
             checkAndStartTracking()
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error initializing location tracking", e)
@@ -355,19 +339,14 @@ class Homepage : AppCompatActivity() {
         val hasPermissions = permissionManager.hasAllPermissions()
         val locationEnabled = LocationUtils.isLocationEnabled(this)
 
-        Log.d(TAG, "Permissions: $hasPermissions, Location enabled: $locationEnabled")
-
         when {
             !hasPermissions -> {
-                Log.d(TAG, "Requesting permissions")
                 requestPermissions()
             }
             !locationEnabled -> {
-                Log.w(TAG, "Location services disabled")
                 permissionManager.showLocationServicesDialog()
             }
             else -> {
-                Log.i(TAG, "✅ Starting tracking")
                 startLocationTracking()
             }
         }
@@ -377,7 +356,6 @@ class Homepage : AppCompatActivity() {
         if (!::permissionManager.isInitialized) return
 
         permissionManager.requestPermissions { granted ->
-            Log.d(TAG, "Permission granted: $granted")
             if (granted && LocationUtils.isLocationEnabled(this)) {
                 startLocationTracking()
             } else {
@@ -391,20 +369,11 @@ class Homepage : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                Log.i(TAG, "STEP 1: Starting connectivity monitoring with device_id...")
                 connectivityManager.startMonitoring()
 
-                Log.i(TAG, "STEP 2: Waiting for connectivity sync...")
                 delay(CONNECTIVITY_UPDATE_DELAY)
 
-                Log.i(TAG, "STEP 3: Starting background location tracking...")
                 locationCoordinator.startTracking()
-                Log.d(TAG, "✅ Background tracking started")
-
-                // ✅ CHANGED: Don't auto-refresh on startup
-                // User must manually pull-to-refresh to see online count
-
-//                Toast.makeText(this@Homepage, "Location tracking active ✅", Toast.LENGTH_SHORT).show()
 
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error starting tracking", e)
@@ -414,11 +383,21 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun refreshOnlineUserCount() {
-        if (isLoadingUsers) {
-            Log.d(TAG, "Already loading, skipping")
+        // FIXED: Prevent rapid successive calls
+        val now = System.currentTimeMillis()
+        if (now - lastCountRefreshTime < COUNT_REFRESH_COOLDOWN_MS) {
+            Log.d(TAG, "⏭️ Skipping count refresh (cooldown active)")
+            binding.root.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh).isRefreshing = false
             return
         }
 
+        if (isLoadingUsers) {
+            Log.d(TAG, "Already loading, skipping")
+            binding.root.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh).isRefreshing = false
+            return
+        }
+
+        // FIXED: Show loading state properly
         runOnUiThread {
             if (onlineUsersSwitcher.displayedChild != 0) {
                 onlineUsersSwitcher.displayedChild = 0
@@ -426,72 +405,100 @@ class Homepage : AppCompatActivity() {
         }
 
         isLoadingUsers = true
+        lastCountRefreshTime = now
         Log.d(TAG, "=== Refreshing Online User Count ===")
 
         lifecycleScope.launch {
             try {
-                val result = mapRepository.getReachableUsersCount(countByDevice = true)
+                // FIXED: Add timeout to prevent hanging
+                withTimeout(15_000L) { // 15 second timeout
+                    val result = mapRepository.getReachableUsersCount(
+                        countByDevice = true,
+                        includeNearby = true // FIXED: Include nearby users
+                    )
 
-                result.onSuccess { count ->
-                    Log.d(TAG, "✅ SUCCESS! $count unique devices online")
-                    runOnUiThread {
-                        binding.tvOnlineUsers.text = count.toString()
-                        onlineUsersSwitcher.displayedChild = 1
+                    result.onSuccess { count ->
+                        Log.d(TAG, "✅ SUCCESS! $count unique devices online")
+                        runOnUiThread {
+                            binding.tvOnlineUsers.text = count.toString()
+                            onlineUsersSwitcher.displayedChild = 1
+                        }
+
+                        val message = if (count > 0) {
+                            "$count users available"
+                        } else {
+                            "No users online"
+                        }
+                        Toast.makeText(this@Homepage, message, Toast.LENGTH_SHORT).show()
                     }
 
-                    val message = if (count > 0) {
-                        "$count users available"
-                    } else {
-                        "No users online"
+                    result.onFailure { error ->
+                        Log.e(TAG, "❌ FAILED: ${error.message}")
+                        handleCountError(error)
                     }
-                    Toast.makeText(this@Homepage, message, Toast.LENGTH_SHORT).show()
                 }
-
-                result.onFailure { error ->
-                    Log.e(TAG, "❌ FAILED: ${error.message}")
-                    runOnUiThread {
-                        binding.tvOnlineUsers.text = "0"
-                        onlineUsersSwitcher.displayedChild = 1
-                    }
-                }
-
+            } catch (e: TimeoutCancellationException) {
+                Log.e(TAG, "⏱️ Count request timed out")
+                handleCountError(Exception("Request timed out"))
             } catch (e: Exception) {
                 Log.e(TAG, "Exception loading count", e)
-                runOnUiThread {
-                    binding.tvOnlineUsers.text = "0"
-                    onlineUsersSwitcher.displayedChild = 1
-                }
+                handleCountError(e)
             } finally {
                 isLoadingUsers = false
+                runOnUiThread {
+                    binding.root.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh).isRefreshing = false
+                }
             }
+        }
+    }
+
+    private fun handleCountError(error: Throwable) {
+        runOnUiThread {
+            binding.tvOnlineUsers.text = "0"
+            onlineUsersSwitcher.displayedChild = 1
+
+            val message = when {
+                error.message?.contains("429") == true -> "Too many requests. Please wait."
+                error.message?.contains("timeout") == true -> "Request timed out. Try again."
+                error.message?.contains("network") == true -> "Network error. Check connection."
+                else -> "Failed to load count"
+            }
+
+            Toast.makeText(this@Homepage, message, Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun refreshAllData() {
         val refreshLayout = binding.root.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
-        refreshLayout.isRefreshing = true
 
+        // FIXED: Prevent spam refreshing
         if (isLoadingUsers) {
-            Log.d(TAG, "Already loading, skipping refresh")
+            Log.d(TAG, "Already refreshing, ignoring")
             refreshLayout.isRefreshing = false
             return
         }
 
         Log.d(TAG, "=== MANUAL REFRESH TRIGGERED ===")
+        refreshLayout.isRefreshing = true
 
         lifecycleScope.launch {
             try {
+                // Step 1: Update connectivity
                 if (::connectivityManager.isInitialized) {
                     connectivityManager.forceUpdate()
-                    delay(CONNECTIVITY_UPDATE_DELAY)
+                    // FIXED: Wait longer for backend to process
+                    delay(2000) // 2 seconds instead of 1.5
                 }
 
+                // Step 2: Refresh count (with rate limiting)
                 refreshOnlineUserCount()
+
+                // Step 3: Load requests
                 loadTopTwoRequests()
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error during refresh", e)
-                Toast.makeText(this@Homepage, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@Homepage, "Refresh failed: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 refreshLayout.isRefreshing = false
             }
@@ -507,7 +514,6 @@ class Homepage : AppCompatActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val recyclerView = dialogView.findViewById<RecyclerView>(R.id.rvAreaUsers)
-        // ✅ FIX: btnClose is an ImageView, not a Button
         val btnClose = dialogView.findViewById<ImageView>(R.id.btnClose)
         val loadingText = dialogView.findViewById<TextView>(R.id.tvLoading)
 
@@ -518,7 +524,10 @@ class Homepage : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val result = mapRepository.getReachableUsersByArea(countByDevice = true)
+                val result = mapRepository.getReachableUsersByArea(
+                    countByDevice = true,
+                    includeNearby = true // FIXED: Include nearby areas
+                )
 
                 result.onSuccess { areaCounts ->
                     runOnUiThread {
@@ -528,8 +537,16 @@ class Homepage : AppCompatActivity() {
                             loadingText.visibility = View.GONE
                             recyclerView.visibility = View.VISIBLE
 
-                            val areaList = areaCounts.map { it.key to it.value }
-                                .sortedByDescending { it.second }
+                            // FIXED: Sort and format area names properly
+                            val areaList = areaCounts.map { (area, count) ->
+                                // Format _nearby areas nicely
+                                val displayName = if (area.endsWith("_nearby")) {
+                                    "${area.replace("_nearby", "")} (Nearby)"
+                                } else {
+                                    area
+                                }
+                                displayName to count
+                            }.sortedByDescending { it.second }
 
                             recyclerView.adapter = AreaUserAdapter(areaList)
                         }
@@ -539,7 +556,7 @@ class Homepage : AppCompatActivity() {
                 result.onFailure { error ->
                     Log.e(TAG, "Error loading area data", error)
                     runOnUiThread {
-                        loadingText.text = "Failed to load data: ${error.message}"
+                        loadingText.text = "Failed to load: ${error.message}"
                     }
                 }
 
@@ -567,7 +584,6 @@ class Homepage : AppCompatActivity() {
                     runOnUiThread {
                         activeRequestsContainer.removeAllViews()
                         orders.take(2).forEach { order ->
-                            // ✅ FIX: Safe null handling and include all order fields
                             val request = DeliveryRequest(
                                 orderId = order.id,
                                 title = order.items.joinToString(", "),
@@ -696,7 +712,6 @@ class Homepage : AppCompatActivity() {
         }
     }
 
-    // ✅ CRITICAL FIX: Handle nullable reward consistently
     private fun extractRewardPercentage(order: Order): Int = try {
         order.reward.toInt()
     } catch (e: Exception) {
@@ -760,15 +775,12 @@ class Homepage : AppCompatActivity() {
             putExtra("time", request.time)
             putExtra("item_price", request.itemPrice)
 
-            // ✅ ADD ALL ORDER DATA to match RequestActivity
             putExtra("pickup_area", request.pickupArea)
             putExtra("drop_area", request.dropArea)
             putExtra("status", request.status)
-            // ✅ ADD ACCEPTOR INFO
             putExtra("acceptor_email", request.acceptorEmail)
             putExtra("acceptor_name", request.acceptorName)
             putExtra("acceptor_phone", request.acceptorPhone)
-            // ✅ ADD REQUESTER INFO
             putExtra("requester_email", request.requesterEmail)
             putExtra("requester_name", request.requesterName)
             putExtra("requester_phone", request.requesterPhone)

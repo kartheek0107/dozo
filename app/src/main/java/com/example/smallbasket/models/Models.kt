@@ -1,6 +1,8 @@
 package com.example.smallbasket.models
 
 import com.google.gson.annotations.SerializedName
+import com.example.smallbasket.models.DeviceInfo
+import com.example.smallbasket.models.ConnectivityUpdateRequest
 
 // ============================================
 // REQUEST MODELS
@@ -123,14 +125,15 @@ data class UserProfileResponse(
 data class DeviceInfo(
     @SerializedName("os") val os: String? = null,
     @SerializedName("model") val model: String? = null,
-    @SerializedName("app_version") val appVersion: String? = null
+    @SerializedName("app_version") val appVersion: String? = null,
+    @SerializedName("manufacturer") val manufacturer: String? = null
 )
 
 data class ConnectivityUpdateRequest(
     @SerializedName("is_connected") val isConnected: Boolean,
     @SerializedName("location_permission_granted") val locationPermissionGranted: Boolean,
     @SerializedName("device_id") val deviceId: String? = null,
-    @SerializedName("device_info") val deviceInfo: DeviceInfo? = null
+    @SerializedName("device_info") val deviceInfo: DeviceInfo? = null  // ✅ Changed from Map to DeviceInfo
 )
 
 // ============================================

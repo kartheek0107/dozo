@@ -1,170 +1,188 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Premium Notification Item Layout - Compatible with existing adapter -->
+<!-- ✅ WORLD-CLASS PREMIUM NOTIFICATION ITEM -->
+<!-- IMPROVEMENTS: Contextual icons, semantic colors, perfect typography hierarchy, balanced spacing -->
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginVertical="6dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="3dp"
     app:cardBackgroundColor="@android:color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical"
         android:background="?attr/selectableItemBackground">
 
-        <!-- Notification Icon Container -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/iconContainer"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="@color/teal_100">
-
-            <ImageView
-                android:id="@+id/ivNotificationIcon"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_shopping_cart"
-                app:tint="@color/teal_600"
-                tools:src="@drawable/ic_shopping_cart" />
-        </androidx.cardview.widget.CardView>
-
-        <!-- Content Section -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="14dp"
-            android:orientation="vertical">
-
-            <!-- Title Row with Unread Dot -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/tvNotificationTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="New Delivery Request"
-                    android:textColor="#111827"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    tools:text="New Delivery Request" />
-
-                <!-- Unread Indicator Dot (same as unreadIndicator) -->
-                <View
-                    android:id="@+id/unreadDot"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/notification_badge_bg"
-                    android:visibility="visible"
-                    tools:visibility="visible" />
-            </LinearLayout>
-
-            <!-- Message/Body -->
-            <TextView
-                android:id="@+id/tvNotificationMessage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="You have a new delivery request from Order #12345"
-                android:textColor="#6B7280"
-                android:textSize="13sp"
-                android:lineSpacingExtra="2dp"
-                android:maxLines="2"
-                android:ellipsize="end"
-                tools:text="You have a new delivery request from Order #12345" />
-
-            <!-- Metadata Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <!-- Time Icon -->
-                <ImageView
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:src="@drawable/ic_noti"
-                    app:tint="#9CA3AF"
-                    android:alpha="0.6" />
-
-                <!-- Time Text -->
-                <TextView
-                    android:id="@+id/tvNotificationTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="5 mins ago"
-                    android:textColor="#9CA3AF"
-                    android:textSize="12sp"
-                    android:fontFamily="sans-serif"
-                    tools:text="5 mins ago" />
-
-                <!-- Spacer -->
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <!-- Category Badge -->
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/categoryBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="10dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@color/teal_50">
-
-                    <TextView
-                        android:id="@+id/tvNotificationCategory"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="New Order"
-                        android:textColor="@color/teal_700"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="4dp"
-                        tools:text="New Order" />
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Action Button (Optional) -->
-        <ImageButton
-            android:id="@+id/btnNotificationAction"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="View details"
-            android:padding="8dp"
-            android:src="@drawable/ic_arrow_back"
-            android:rotation="180"
-            app:tint="#9CA3AF"
+        <!-- Unread Indicator Bar (Left edge) -->
+        <View
+            android:id="@+id/unreadIndicator"
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="#3B82F6"
             android:visibility="visible"
             tools:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="20dp"
+            android:gravity="center_vertical">
+
+            <!-- Notification Icon Container with Semantic Color -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/iconContainer"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#DBEAFE">
+
+                <ImageView
+                    android:id="@+id/ivNotificationIcon"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_package"
+                    app:tint="#3B82F6"
+                    tools:src="@drawable/ic_package" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Content Section -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="12dp"
+                android:orientation="vertical">
+
+                <!-- Title Row with Unread Dot -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/tvNotificationTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="New Delivery Request"
+                        android:textColor="#111827"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="-0.01"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        tools:text="New Delivery Request" />
+
+                    <!-- Unread Dot (Top right of title) -->
+                    <View
+                        android:id="@+id/unreadDot"
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/notification_badge_bg"
+                        android:visibility="visible"
+                        tools:visibility="visible" />
+                </LinearLayout>
+
+                <!-- Message/Body with proper line spacing -->
+                <TextView
+                    android:id="@+id/tvNotificationMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Someone needs lunch delivered from Canteen to Hostel A. Tap to view details."
+                    android:textColor="#6B7280"
+                    android:textSize="14sp"
+                    android:lineSpacingMultiplier="1.3"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:layout_marginBottom="10dp"
+                    tools:text="Someone needs lunch delivered from Canteen to Hostel A. Tap to view details." />
+
+                <!-- Metadata Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <!-- Time with Icon -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@android:drawable/ic_menu_recent_history"
+                            app:tint="#9CA3AF"
+                            android:contentDescription="Time icon" />
+
+                        <TextView
+                            android:id="@+id/tvNotificationTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="5 mins ago"
+                            android:textColor="#9CA3AF"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif"
+                            tools:text="5 mins ago" />
+                    </LinearLayout>
+
+                    <!-- Category Badge with proper styling -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/categoryBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#DBEAFE">
+
+                        <TextView
+                            android:id="@+id/tvNotificationCategory"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="New Order"
+                            android:textColor="#1E40AF"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.02"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"
+                            tools:text="New Order" />
+                    </androidx.cardview.widget.CardView>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Action Button with proper icon -->
+            <ImageButton
+                android:id="@+id/btnNotificationAction"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="View details"
+                android:padding="8dp"
+                android:src="@drawable/ic_arrow_forward"
+                app:tint="#9CA3AF"
+                android:visibility="visible"
+                tools:visibility="visible" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>
