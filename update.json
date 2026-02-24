@@ -1,0 +1,9 @@
+{
+  "latestVersion": "2.0.1",
+  "latestVersionCode": 5,
+  "url": "https://github.com/kartheek0107/dozo/releases/download/v2.0.1-secure/app-release.apk",
+  "releaseNotes": [
+    "Security update: removed sensitive files",
+    "Added update checker"
+  ]
+}
