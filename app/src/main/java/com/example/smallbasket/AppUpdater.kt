@@ -14,7 +14,7 @@ import java.net.URL
 
 object AppUpdater {
     // Replace with the RAW link to your update.json on GitHub
-    private const val JSON_URL = "https://raw.githubusercontent.com/kartheek0107/dozo/master/update.json"
+    private const val JSON_URL = "https://github.com/kartheek0107/dozo/blob/master/update.json"
 
     fun checkForUpdates(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
