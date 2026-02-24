@@ -1,6 +1,6 @@
 {
   "latestVersion": "2.0.2",
   "latestVersionCode": 6,
-  "url": "https://github.com/kartheek0107/dozo/releases/download/v2.0.1-secure/app-release.apk",
+  "url": "https://github.com/kartheek0107/dozo/releases/download/v2.0.2/app-release.apk",
   "releaseNotes": ["Added missing auto-update logic", "Version bump to 2.0.2"]
 }
