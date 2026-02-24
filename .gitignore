@@ -13,3 +13,28 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase config (contains API keys)
+google-services.json
+app/google-services.json
+secrets.properties
+google-services.json
+keystore.properties
+release.jks
+
+# Keystore files (signing keys)
+*.jks
+*.keystore
+keystore.properties
+key.properties
+
+# Local config with secrets
+secrets.properties
+api_keys.properties
+
+# Gradle local properties (may contain keys)
+gradle.properties.local
+
+# IDE-specific files that might contain keys
+.idea/misc.xml
+.idea/gradle.xml

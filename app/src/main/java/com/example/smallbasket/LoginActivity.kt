@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.smallbasket.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -97,10 +98,22 @@ class LoginActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
 
-                    com.example.smallbasket.notifications.NotificationManager
-                        .getInstance(this@LoginActivity)
-                        .initialize()
-
+                    // Step 5: Force a fresh FCM token so the backend always has the latest one.
+                    // This handles cases where the token rotated (app reinstall, token expiry)
+                    // and the old one was never re-registered because the user wasn't logged in.
+                    try {
+                        FirebaseMessaging.getInstance().deleteToken().await()
+                        // initialize() will call getToken() which generates a fresh token
+                        // and registers it with the backend now that the user is signed in.
+                        com.example.smallbasket.notifications.NotificationManager
+                            .getInstance(this@LoginActivity)
+                            .initialize()
+                    } catch (e: Exception) {
+                        // Non-fatal: fall back to registering whatever token exists
+                        com.example.smallbasket.notifications.NotificationManager
+                            .getInstance(this@LoginActivity)
+                            .initialize()
+                    }
 
                     startActivity(Intent(this@LoginActivity, Homepage::class.java))
                     finish()

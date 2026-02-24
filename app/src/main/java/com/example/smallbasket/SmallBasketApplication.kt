@@ -34,6 +34,18 @@ class SmallBasketApplication : Application() {
             Log.e(TAG, "❌ Error initializing Firebase", e)
         }
 
+        // Create notification channels immediately at app start (before any message arrives)
+        // This is critical — if channels don't exist when a background FCM message arrives,
+        // Android 8+ silently drops the notification even though FCM reports success.
+        try {
+            com.example.smallbasket.notifications.NotificationManager
+                .getInstance(this)
+                .createChannels()
+            Log.d(TAG, "✅ Notification channels created at startup")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error creating notification channels", e)
+        }
+
         // Initialize location tracking coordinator
         applicationScope.launch(Dispatchers.IO) {
             try {

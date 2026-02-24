@@ -1,7 +1,13 @@
 package com.example.smallbasket.notifications
 
+import android.app.NotificationChannel
+import android.app.NotificationManager as AndroidNotificationManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.os.Build
 import android.util.Log
 import com.example.smallbasket.api.RetrofitClient
 import com.example.smallbasket.models.FCMTokenRequest
@@ -57,6 +63,70 @@ class NotificationManager private constructor(private val context: Context) {
 
     private val gson = Gson()
     private val api = RetrofitClient.apiService
+
+    /**
+     * Create all notification channels.
+     * Must be called at app startup (in Application.onCreate) so channels exist
+     * before any FCM message arrives — otherwise Android 8+ silently drops
+     * background notifications even when FCM reports success.
+     */
+    fun createChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as AndroidNotificationManager
+
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build()
+
+            // Channel 1: New Delivery Requests (HIGH priority)
+            val channelNewRequests = NotificationChannel(
+                FCMService.CHANNEL_NEW_REQUESTS,
+                "New Delivery Requests",
+                AndroidNotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for new delivery requests in your area"
+                enableLights(true)
+                lightColor = Color.parseColor("#14B8A6")
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 200, 250)
+                setSound(soundUri, audioAttributes)
+                setShowBadge(true)
+            }
+
+            // Channel 2: Order Updates (DEFAULT priority)
+            val channelOrderUpdates = NotificationChannel(
+                FCMService.CHANNEL_ORDER_UPDATES,
+                "Order Updates",
+                AndroidNotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Updates about your orders (accepted, completed, cancelled)"
+                enableLights(true)
+                lightColor = Color.parseColor("#14B8A6")
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 200, 150, 200)
+                setSound(soundUri, audioAttributes)
+                setShowBadge(true)
+            }
+
+            // Channel 3: General Notifications (LOW priority)
+            val channelGeneral = NotificationChannel(
+                FCMService.CHANNEL_GENERAL,
+                "General Notifications",
+                AndroidNotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "General app notifications and announcements"
+                setShowBadge(false)
+            }
+
+            nm.createNotificationChannel(channelNewRequests)
+            nm.createNotificationChannel(channelOrderUpdates)
+            nm.createNotificationChannel(channelGeneral)
+
+            Log.d(TAG, "✅ Notification channels created")
+        }
+    }
 
     /**
      * Initialize FCM and register token with backend

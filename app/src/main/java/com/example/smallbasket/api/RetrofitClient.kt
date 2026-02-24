@@ -1,6 +1,6 @@
 package com.example.smallbasket.api
 
-import com.example.smallbasket.models.*
+import com.example.smallbasket.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -13,7 +13,7 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Retrofit client singleton for API communication
- * ✅ FIXED: Proper async token handling
+ * ✅ SECURE: Auth tokens never logged in release, sensitive headers redacted
  */
 object RetrofitClient {
 
@@ -34,11 +34,23 @@ object RetrofitClient {
     }
 
     /**
-     * ✅ OPTIMIZED: Get OkHttpClient with cached token authentication
+     * ✅ SECURE: Get OkHttpClient with proper logging configuration
      */
     private fun getOkHttpClient(): OkHttpClient {
+        // ✅ SECURE: Logging level based on build type
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                // Debug: Log body but redact sensitive headers
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                // Release: No logging at all
+                HttpLoggingInterceptor.Level.NONE
+            }
+
+            // ✅ Redact sensitive headers even in debug
+            redactHeader("Authorization")
+            redactHeader("Cookie")
+            redactHeader("Set-Cookie")
         }
 
         val authInterceptor = Interceptor { chain ->
@@ -46,11 +58,9 @@ object RetrofitClient {
 
             val request = if (currentUser != null) {
                 try {
-                    // ✅ SPEED FIX: Use cached token (forceRefresh = false)
-                    // This is MUCH faster than getting a new token every time
+                    // ✅ Use cached token (faster)
                     val tokenResult = currentUser.getIdToken(false)
 
-                    // Check if token is already available (cached)
                     if (tokenResult.isComplete) {
                         val token = tokenResult.result?.token
                         if (token != null) {
@@ -61,8 +71,7 @@ object RetrofitClient {
                             chain.request()
                         }
                     } else {
-                        // Token not cached, fetch it synchronously (slower path)
-                        android.util.Log.w("RetrofitClient", "Token not cached, fetching...")
+                        // Token not cached, fetch synchronously
                         val token = runBlocking {
                             try {
                                 tokenResult.await().token
@@ -92,9 +101,9 @@ object RetrofitClient {
         }
 
         return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)  // Increased from default
-            .readTimeout(15, TimeUnit.SECONDS)     // Increased from default
-            .writeTimeout(15, TimeUnit.SECONDS)    // Increased from default
+            .connectTimeout(ApiConfig.CONNECT_TIMEOUT, TimeUnit.SECONDS)
+            .readTimeout(ApiConfig.READ_TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(ApiConfig.WRITE_TIMEOUT, TimeUnit.SECONDS)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .build()

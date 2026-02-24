@@ -126,10 +126,11 @@ class ConnectivityStatusManager private constructor(private val context: Context
 
         scope.launch {
             try {
+                val validDeviceId = if (deviceId == "unknown" || deviceId.length < 5) null else deviceId
                 val request = ConnectivityUpdateRequest(
                     isConnected = false,
                     locationPermissionGranted = false,
-                    deviceId = deviceId  // ✅ Send device_id
+                    deviceId = validDeviceId
                 )
                 api.updateConnectivity(request)
                 Log.d(TAG, "✅ Set user to offline before stopping")
@@ -201,10 +202,12 @@ class ConnectivityStatusManager private constructor(private val context: Context
             Log.d(TAG, "Device ID: $deviceId")
             Log.d(TAG, "Will be reachable: ${isConnected && hasLocationPermission}")
 
-            // FIXED: Validate device_id before sending
-            if (deviceId == "unknown" || deviceId.isEmpty()) {
-                Log.e(TAG, "❌ Invalid device_id, cannot update connectivity")
-                return
+            // FIXED: Send null instead of skipping when device_id is invalid
+            val validDeviceId = if (deviceId == "unknown" || deviceId.length < 5) {
+                Log.w(TAG, "⚠️ Invalid device_id, sending null")
+                null
+            } else {
+                deviceId
             }
 
             // ✅ FIXED: Create DeviceInfo object instead of Map
@@ -231,7 +234,7 @@ class ConnectivityStatusManager private constructor(private val context: Context
             val request = ConnectivityUpdateRequest(
                 isConnected = isConnected,
                 locationPermissionGranted = hasLocationPermission,
-                deviceId = deviceId,
+                deviceId = validDeviceId,
                 deviceInfo = deviceInfo  // ✅ Now using DeviceInfo object
             )
 

@@ -55,8 +55,10 @@ class FCMService : FirebaseMessagingService() {
         Log.d(TAG, "📋 Data: ${message.data}")
         Log.d(TAG, "📋 Notification: ${message.notification}")
 
-        // Create notification channels first
-        createNotificationChannels()
+        // Ensure channels exist (safety net — primary creation happens in Application.onCreate)
+        com.example.smallbasket.notifications.NotificationManager
+            .getInstance(this)
+            .createChannels()
 
         // Extract notification data from RemoteMessage
         val data = message.data
@@ -85,66 +87,6 @@ class FCMService : FirebaseMessagingService() {
 
         // Show system notification
         showNotification(notificationData)
-    }
-
-    private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            // Custom notification sound
-            val soundUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val audioAttributes = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .build()
-
-            // Channel 1: New Delivery Requests (HIGH priority)
-            val channelNewRequests = NotificationChannel(
-                CHANNEL_NEW_REQUESTS,
-                "New Delivery Requests",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for new delivery requests in your area"
-                enableLights(true)
-                lightColor = android.graphics.Color.parseColor("#14B8A6")
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 250, 200, 250)
-                setSound(soundUri, audioAttributes)
-                setShowBadge(true)
-            }
-
-            // Channel 2: Order Updates (DEFAULT priority)
-            val channelOrderUpdates = NotificationChannel(
-                CHANNEL_ORDER_UPDATES,
-                "Order Updates",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Updates about your orders (accepted, completed, cancelled)"
-                enableLights(true)
-                lightColor = android.graphics.Color.parseColor("#14B8A6")
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 200, 150, 200)
-                setSound(soundUri, audioAttributes)
-                setShowBadge(true)
-            }
-
-            // Channel 3: General Notifications (LOW priority)
-            val channelGeneral = NotificationChannel(
-                CHANNEL_GENERAL,
-                "General Notifications",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "General app notifications and announcements"
-                setShowBadge(false)
-            }
-
-            // Register all channels
-            notificationManager.createNotificationChannel(channelNewRequests)
-            notificationManager.createNotificationChannel(channelOrderUpdates)
-            notificationManager.createNotificationChannel(channelGeneral)
-
-            Log.d(TAG, "✅ Notification channels created")
-        }
     }
 
     private fun showNotification(data: NotificationData) {

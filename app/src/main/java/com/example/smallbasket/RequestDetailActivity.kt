@@ -1,5 +1,7 @@
 package com.example.smallbasket
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -43,6 +45,8 @@ class RequestDetailActivity : AppCompatActivity() {
         val orderId = intent.getStringExtra("order_id")
 
         if (orderId != null && !hasAllRequiredData()) {
+            // ✅ FIX: Show loading state immediately, don't show dummy data
+            showLoadingState()
             // If we only have order_id (from notification), fetch full order data from backend
             fetchOrderFromBackend(orderId)
         } else {
@@ -54,6 +58,28 @@ class RequestDetailActivity : AppCompatActivity() {
         findViewById<ImageView>(R.id.btnBack).setOnClickListener {
             onBackPressed()
         }
+    }
+
+    /**
+     * ✅ NEW: Show loading state instead of dummy data
+     */
+    private fun showLoadingState() {
+        findViewById<View>(R.id.cardContent)?.alpha = 0.6f
+
+        // Hide all content initially
+        findViewById<TextView>(R.id.tvItemTitle)?.text = ""
+        findViewById<LinearLayout>(R.id.layoutPriority)?.visibility = View.GONE
+        findViewById<TextView>(R.id.tvPickup)?.text = "Loading..."
+        findViewById<TextView>(R.id.tvDrop)?.text = "Loading..."
+        findViewById<LinearLayout>(R.id.layoutBestBefore)?.visibility = View.GONE
+        findViewById<LinearLayout>(R.id.layoutItemPrice)?.visibility = View.GONE
+        findViewById<TextView>(R.id.tvReward)?.text = "Loading..."
+        findViewById<CardView>(R.id.cardNotes)?.visibility = View.GONE
+
+        // Hide info cards while loading
+        findViewById<View>(R.id.includeRequesterInfo)?.visibility = View.GONE
+        findViewById<View>(R.id.includeAcceptorInfo)?.visibility = View.GONE
+        findViewById<CardView>(R.id.btnAcceptRequest)?.visibility = View.GONE
     }
 
     /**
@@ -69,15 +95,11 @@ class RequestDetailActivity : AppCompatActivity() {
      * Fetch order details from backend using order_id
      */
     private fun fetchOrderFromBackend(orderId: String) {
-        // Show loading state
-        findViewById<View>(R.id.cardContent)?.alpha = 0.5f
-        Toast.makeText(this, "Loading order details...", Toast.LENGTH_SHORT).show()
-
         lifecycleScope.launch {
             val result = orderRepository.getOrder(orderId)
 
             result.onSuccess { order ->
-                // Hide loading state
+                // ✅ FIX: Restore normal opacity after loading
                 findViewById<View>(R.id.cardContent)?.alpha = 1.0f
 
                 // Populate UI with fetched data
@@ -231,7 +253,9 @@ class RequestDetailActivity : AppCompatActivity() {
         requesterPhone: String?
     ) {
         // Get the included requester card
-        val requesterCard = findViewById<View>(R.id.includeRequesterInfo)
+        val requesterCard = findViewById<CardView>(R.id.includeRequesterInfo)
+        requesterCard.visibility = View.VISIBLE
+
         val tvRequesterName = requesterCard.findViewById<TextView>(R.id.tvRequesterName)
         val tvRequesterEmail = requesterCard.findViewById<TextView>(R.id.tvRequesterEmail)
         val tvRequesterPhone = requesterCard.findViewById<TextView>(R.id.tvRequesterPhone)
@@ -245,8 +269,22 @@ class RequestDetailActivity : AppCompatActivity() {
         if (!requesterPhone.isNullOrEmpty()) {
             tvRequesterPhone.text = requesterPhone
             layoutRequesterPhone.visibility = View.VISIBLE
+
+            // ✅ TASK 2: Make entire card clickable to open dialer
+            requesterCard.setOnClickListener {
+                openPhoneDialer(requesterPhone)
+            }
+
+            // ✅ FIX: Use custom ripple effect instead of orange selector
+            requesterCard.isClickable = true
+            requesterCard.isFocusable = true
+            requesterCard.foreground = getDrawable(R.drawable.card_ripple_effect)
         } else {
             layoutRequesterPhone.visibility = View.GONE
+            // No phone number, so card shouldn't be clickable
+            requesterCard.isClickable = false
+            requesterCard.isFocusable = false
+            requesterCard.foreground = null
         }
     }
 
@@ -257,7 +295,7 @@ class RequestDetailActivity : AppCompatActivity() {
         status: String
     ) {
         // Get the acceptor card
-        val acceptorCard = findViewById<View>(R.id.includeAcceptorInfo)
+        val acceptorCard = findViewById<CardView>(R.id.includeAcceptorInfo)
 
         // Only show acceptor card if the request has been accepted
         // Status could be "accepted", "in_progress", "completed", etc. (anything except "open")
@@ -278,8 +316,22 @@ class RequestDetailActivity : AppCompatActivity() {
             if (!acceptorPhone.isNullOrEmpty()) {
                 tvAcceptorPhone.text = acceptorPhone
                 layoutAcceptorPhone.visibility = View.VISIBLE
+
+                // ✅ TASK 2: Make entire card clickable to open dialer
+                acceptorCard.setOnClickListener {
+                    openPhoneDialer(acceptorPhone)
+                }
+
+                // ✅ FIX: Use custom ripple effect instead of orange selector
+                acceptorCard.isClickable = true
+                acceptorCard.isFocusable = true
+                acceptorCard.foreground = getDrawable(R.drawable.card_ripple_effect)
             } else {
                 layoutAcceptorPhone.visibility = View.GONE
+                // No phone number, so card shouldn't be clickable
+                acceptorCard.isClickable = false
+                acceptorCard.isFocusable = false
+                acceptorCard.foreground = null
             }
 
             // Update status badge based on current status
@@ -307,6 +359,23 @@ class RequestDetailActivity : AppCompatActivity() {
         } else {
             // Hide acceptor card if request is still open
             acceptorCard.visibility = View.GONE
+        }
+    }
+
+    /**
+     * ✅ TASK 2: Open phone dialer with the given phone number
+     */
+    private fun openPhoneDialer(phoneNumber: String) {
+        try {
+            val intent = Intent(Intent.ACTION_DIAL)
+            intent.data = Uri.parse("tel:$phoneNumber")
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "Unable to open phone dialer",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
