@@ -160,6 +160,7 @@ class MainActivity : AppCompatActivity() {
                 finish()
             }
         }
+        AppUpdater.checkForUpdates(this)
     }
 
     // ---------- Haptic Presets ----------
