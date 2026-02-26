@@ -55,10 +55,6 @@ class Homepage : AppCompatActivity() {
     private var lastCountRefreshTime = 0L
     private val COUNT_REFRESH_COOLDOWN_MS = 10_000L // 10 seconds minimum between refreshes
 
-    // ---- FIX 1: Guard flag so onResume never fires a second permission request
-    //             while one is already in-flight or already denied this session.
-    private var permissionRequestInProgress = false
-
     companion object {
         private const val TAG = "Homepage"
         private const val CONNECTIVITY_UPDATE_DELAY = 1500L
@@ -74,7 +70,7 @@ class Homepage : AppCompatActivity() {
     private val mapRepository = MapRepository()
 
     private lateinit var locationCoordinator: LocationTrackingCoordinator
-    private lateinit var permissionManager: LocationPermissionManager
+    private lateinit var permissionCoordinator: PermissionCoordinator
     private lateinit var connectivityManager: ConnectivityStatusManager
 
     private var isLoadingUsers = false
@@ -96,14 +92,12 @@ class Homepage : AppCompatActivity() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        if (::permissionManager.isInitialized) {
-            permissionManager.handlePermissionResult(permissions)
+        if (::permissionCoordinator.isInitialized) {
+            permissionCoordinator.handlePermissionResult(permissions)
         }
     }
 
-    // ---- FIX 2: Notification permission launcher promoted to class-level property.
-    //             Registering a launcher inside a method body is unsafe and was the
-    //             secondary cause of the "Something went wrong" crash path.
+    // ---- FIX: Notification permission launcher at class level (not in method)
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -199,24 +193,26 @@ class Homepage : AppCompatActivity() {
         super.onResume()
 
         try {
-            if (::permissionManager.isInitialized) {
-                when {
-                    // ---- FIX 3: Only request permissions if none are in-flight.
-                    //             This is the line that broke the loop.
-                    //             Previously, every resume called requestPermissions()
-                    //             unconditionally, even while a system dialog was open,
-                    //             causing the dialog to re-stack on dismiss/resume.
-                    !permissionManager.hasAllPermissions() && !permissionRequestInProgress -> {
-                        requestPermissions()
-                    }
+            if (::permissionCoordinator.isInitialized) {
+                val state = permissionCoordinator.getState()
+                Log.d(TAG, "onResume - Permission state: $state")
 
-                    // Permissions in-flight — do nothing. The launcher callback handles next steps.
-                    !permissionManager.hasAllPermissions() && permissionRequestInProgress -> {
-                        Log.d(TAG, "Permission request already in progress, skipping onResume re-trigger")
+                when {
+                    // ---- FIX: Use coordinator to check and request permissions
+                    !permissionCoordinator.hasAllPermissions() -> {
+                        permissionCoordinator.requestPermissions(
+                            fromOnResume = true
+                        ) { granted ->
+                            if (granted && LocationUtils.isLocationEnabled(this)) {
+                                startLocationTracking()
+                            } else {
+                                Log.d(TAG, "Permissions not granted or location disabled")
+                            }
+                        }
                     }
 
                     !LocationUtils.isLocationEnabled(this) -> {
-                        permissionManager.showLocationServicesDialog()
+                        permissionCoordinator.showLocationServicesDialog()
                     }
 
                     else -> {
@@ -236,8 +232,7 @@ class Homepage : AppCompatActivity() {
         }
     }
 
-    // ---- FIX 4: Notification permission uses the class-level launcher.
-    //             The old inline registerForActivityResult() call is removed entirely.
+    // ---- FIX: Notification permission uses class-level launcher
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val hasPermission = ContextCompat.checkSelfPermission(
@@ -346,8 +341,12 @@ class Homepage : AppCompatActivity() {
     private fun initializeLocationTracking() {
         try {
             locationCoordinator = LocationTrackingCoordinator.getInstance(this)
-            permissionManager = LocationPermissionManager(this)
-            permissionManager.setPermissionLauncher(permissionLauncher)
+
+            // ---- FIX: Initialize PermissionCoordinator
+            permissionCoordinator = PermissionCoordinator.getInstance(this)
+            permissionCoordinator.initialize(this)
+            permissionCoordinator.setPermissionLauncher(permissionLauncher)
+
             connectivityManager = ConnectivityStatusManager.getInstance(applicationContext)
 
             checkAndStartTracking()
@@ -358,37 +357,21 @@ class Homepage : AppCompatActivity() {
     }
 
     private fun checkAndStartTracking() {
-        if (!::permissionManager.isInitialized) return
+        if (!::permissionCoordinator.isInitialized) return
 
-        val hasPermissions = permissionManager.hasAllPermissions()
+        val hasPermissions = permissionCoordinator.hasAllPermissions()
         val locationEnabled = LocationUtils.isLocationEnabled(this)
 
         when {
             !hasPermissions -> {
-                requestPermissions()
+                // Don't request immediately - let onResume handle it
+                Log.d(TAG, "Permissions not granted - will request in onResume")
             }
             !locationEnabled -> {
-                permissionManager.showLocationServicesDialog()
+                permissionCoordinator.showLocationServicesDialog()
             }
             else -> {
                 startLocationTracking()
-            }
-        }
-    }
-
-    private fun requestPermissions() {
-        if (!::permissionManager.isInitialized) return
-
-        // ---- FIX 5: Set the in-progress flag before launching the request,
-        //             and clear it in both outcome branches of the callback.
-        permissionRequestInProgress = true
-
-        permissionManager.requestPermissions { granted ->
-            permissionRequestInProgress = false
-            if (granted && LocationUtils.isLocationEnabled(this)) {
-                startLocationTracking()
-            } else {
-                Toast.makeText(this, "Location permission required", Toast.LENGTH_LONG).show()
             }
         }
     }

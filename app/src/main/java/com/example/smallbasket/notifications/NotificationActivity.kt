@@ -51,6 +51,7 @@ class NotificationActivity : AppCompatActivity() {
             statusBarColor = Color.TRANSPARENT
 
             // Enable drawing behind status bar
+            @Suppress("DEPRECATION")
             decorView.systemUiVisibility = (
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                             or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -70,6 +71,7 @@ class NotificationActivity : AppCompatActivity() {
             var flags = window.decorView.systemUiVisibility
             // Remove light status bar flag to get white icons
             flags = flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = flags
         }
     }
@@ -107,21 +109,20 @@ class NotificationActivity : AppCompatActivity() {
         }
 
         // Refresh button (in empty state)
-        try {
-            binding.btnRefresh.setOnClickListener {
-                performHapticFeedback()
-                refreshNotifications()
-            }
-        } catch (e: Exception) {
-            // btnRefresh might not exist if not using new layout
+        // FIX: Removed fragile try-catch — btnRefresh is a real binding view in the layout.
+        // If it didn't exist, the crash would happen at inflate time, not here.
+        binding.btnRefresh.setOnClickListener {
+            performHapticFeedback()
+            refreshNotifications()
         }
     }
 
     private fun setupRecyclerView() {
         binding.rvNotifications.apply {
             layoutManager = LinearLayoutManager(this@NotificationActivity)
-            // Add item spacing
-            val spacing = resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 4
+
+            // FIX: Use proper dp-to-px conversion instead of misusing android.R.dimen.app_icon_size
+            val spacingPx = (6 * resources.displayMetrics.density).toInt() // 6dp
             addItemDecoration(object : androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
                 override fun getItemOffsets(
                     outRect: android.graphics.Rect,
@@ -129,8 +130,8 @@ class NotificationActivity : AppCompatActivity() {
                     parent: androidx.recyclerview.widget.RecyclerView,
                     state: androidx.recyclerview.widget.RecyclerView.State
                 ) {
-                    outRect.bottom = spacing / 2
-                    outRect.top = spacing / 2
+                    outRect.bottom = spacingPx
+                    outRect.top = spacingPx
                 }
             })
         }
@@ -144,7 +145,11 @@ class NotificationActivity : AppCompatActivity() {
         updateNotificationBadge(unreadCount)
 
         if (notifications.isEmpty()) {
-            // Show empty state with smooth transition
+            // FIX: Clear adapter data before showing empty state to prevent stale items
+            // showing behind the empty state view when the last notification is deleted.
+            if (::notificationAdapter.isInitialized) {
+                notificationAdapter.updateNotifications(emptyList())
+            }
             showEmptyState()
         } else {
             // Show notifications with smooth transition
@@ -153,11 +158,13 @@ class NotificationActivity : AppCompatActivity() {
             // Initialize adapter if not already done
             if (!::notificationAdapter.isInitialized) {
                 notificationAdapter = NotificationAdapter(notifications) { notification ->
-                    // Handle notification click
+                    // FIX: Mark as read and navigate immediately.
+                    // onResume() already calls loadNotifications() when returning from
+                    // RequestDetailActivity, so there is no need to call it here before
+                    // navigation — that caused a visible list flash/redraw + scroll reset.
                     performHapticFeedback()
                     notificationManager.markAsRead(notification.id)
-                    loadNotifications() // Refresh to update badge
-                    navigateToOrder(notification.orderId)
+                    navigateToNotification(notification)
                 }
                 binding.rvNotifications.adapter = notificationAdapter
             } else {
@@ -168,8 +175,8 @@ class NotificationActivity : AppCompatActivity() {
     }
 
     /**
-     * Update the notification badge to show only unread count
-     * Badge disappears when count is 0
+     * Update the notification badge to show only unread count.
+     * Badge disappears when count is 0.
      */
     private fun updateNotificationBadge(unreadCount: Int) {
         try {
@@ -275,7 +282,7 @@ class NotificationActivity : AppCompatActivity() {
 
         // Show informative toast with proper grammar
         val message = when {
-            unreadCount == 0 -> "✓ All caught up! No unread notifications"
+            unreadCount == 0 -> "✓ All caught up!"
             unreadCount == 1 -> "You have 1 unread notification"
             else -> "You have $unreadCount unread notifications"
         }
@@ -309,41 +316,44 @@ class NotificationActivity : AppCompatActivity() {
     }
 
     private fun refreshNotifications() {
-        // Show refresh animation
-        try {
-            binding.btnRefresh.animate()
-                .rotation(360f)
-                .setDuration(500)
-                .withEndAction {
-                    binding.btnRefresh.rotation = 0f
-                    loadNotifications()
-                }
-                .start()
-        } catch (e: Exception) {
-            loadNotifications()
-        }
-
-        Toast.makeText(this, "Refreshing notifications...", Toast.LENGTH_SHORT).show()
+        loadNotifications()
     }
 
     /**
-     * ✅ FIXED: Navigate to RequestDetailActivity with order_id
-     * RequestDetailActivity will fetch order details from backend
+     * FIX: Type-aware navigation.
+     *
+     * Previously all notification types called the same navigateToOrder(orderId?) which:
+     *   1. Showed a confusing "No order associated" Toast for general notifications that
+     *      never have an orderId by design.
+     *   2. Called loadNotifications() BEFORE startActivity(), causing a visible list
+     *      redraw/scroll-reset flash before navigation.
+     *
+     * Now each type routes to its correct destination and general notifications show
+     * their message body as a brief info toast instead of an error.
      */
-    private fun navigateToOrder(orderId: String?) {
-        if (orderId.isNullOrEmpty()) {
-            Toast.makeText(this, "No order associated with this notification", Toast.LENGTH_SHORT).show()
-            return
-        }
-
+    private fun navigateToNotification(notification: SavedNotification) {
         performHapticFeedback()
 
-        // Navigate to RequestDetailActivity with just the order_id
-        val intent = Intent(this, RequestDetailActivity::class.java)
-        intent.putExtra("order_id", orderId)
-
-        Log.d("NotificationActivity", "Opening order: $orderId")
-        startActivity(intent)
+        when (notification.type) {
+            NotificationData.TYPE_NEW_REQUEST,
+            NotificationData.TYPE_REQUEST_ACCEPTED,
+            NotificationData.TYPE_REQUEST_COMPLETED,
+            NotificationData.TYPE_REQUEST_CANCELLED -> {
+                if (notification.orderId.isNullOrEmpty()) {
+                    Toast.makeText(this, "No order associated with this notification", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                val intent = Intent(this, RequestDetailActivity::class.java)
+                intent.putExtra("order_id", notification.orderId)
+                Log.d("NotificationActivity", "Opening order: ${notification.orderId}")
+                startActivity(intent)
+            }
+            else -> {
+                // General / info notifications have no destination screen.
+                // Show the body as a brief toast so the tap feels responsive.
+                Toast.makeText(this, notification.body.ifBlank { notification.title }, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     /**

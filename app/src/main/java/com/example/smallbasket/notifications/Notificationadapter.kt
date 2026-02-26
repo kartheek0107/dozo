@@ -28,6 +28,8 @@ class NotificationAdapter(
         val tvNotificationMessage: TextView = itemView.findViewById(R.id.tvNotificationMessage)
         val tvNotificationTime: TextView = itemView.findViewById(R.id.tvNotificationTime)
         val unreadDot: View = itemView.findViewById(R.id.unreadDot)
+        // Left-edge indicator bar introduced in the redesigned item layout
+        val unreadIndicator: View? = itemView.findViewById(R.id.unreadIndicator)
         val categoryBadge: CardView = itemView.findViewById(R.id.categoryBadge)
         val categoryText: TextView = itemView.findViewById(R.id.tvNotificationCategory)
         val actionButton: ImageButton? = try {
@@ -75,6 +77,7 @@ class NotificationAdapter(
 
         // Show/hide unread indicator with smooth transition
         if (notification.isRead) {
+            // Fade out the small dot
             holder.unreadDot.animate()
                 .alpha(0f)
                 .scaleX(0.5f)
@@ -87,9 +90,17 @@ class NotificationAdapter(
                     holder.unreadDot.scaleY = 1f
                 }
                 .start()
+
+            // Also hide the left-edge indicator bar
+            holder.unreadIndicator?.animate()
+                ?.alpha(0f)
+                ?.setDuration(200)
+                ?.withEndAction { holder.unreadIndicator.visibility = View.INVISIBLE }
+                ?.start()
+
         } else {
+            // Show the small dot with a subtle pulse
             holder.unreadDot.visibility = View.VISIBLE
-            // Add subtle pulse animation for unread
             holder.unreadDot.animate()
                 .scaleX(1.2f)
                 .scaleY(1.2f)
@@ -102,6 +113,10 @@ class NotificationAdapter(
                         .start()
                 }
                 .start()
+
+            // Show the left-edge indicator bar
+            holder.unreadIndicator?.visibility = View.VISIBLE
+            holder.unreadIndicator?.alpha = 1f
         }
 
         // Enhanced visual feedback for read/unread

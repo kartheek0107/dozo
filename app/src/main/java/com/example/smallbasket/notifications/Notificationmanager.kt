@@ -18,6 +18,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class NotificationManager private constructor(private val context: Context) {
 
@@ -129,8 +130,8 @@ class NotificationManager private constructor(private val context: Context) {
     }
 
     /**
-     * Initialize FCM and register token with backend
-     * Call this after successful login
+     * Initialize FCM and register token with backend.
+     * Call this after successful login.
      */
     fun initialize() {
         Log.d(TAG, "=== Initializing FCM ===")
@@ -235,7 +236,12 @@ class NotificationManager private constructor(private val context: Context) {
     }
 
     /**
-     * Save a notification to history
+     * Save a notification to history.
+     *
+     * FIX: Notification ID now uses UUID.randomUUID() instead of
+     * System.currentTimeMillis().toString(). Back-to-back FCM messages
+     * arriving within the same millisecond would previously get the same ID,
+     * causing one to silently overwrite the other in SharedPreferences.
      */
     fun saveNotificationToHistory(notification: NotificationData) {
         val prefs = getPrefs()
@@ -243,9 +249,9 @@ class NotificationManager private constructor(private val context: Context) {
         val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
         val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
 
-        // Add new notification
+        // FIX: Use UUID to guarantee uniqueness even under rapid fire messages
         val savedNotification = SavedNotification(
-            id = System.currentTimeMillis().toString(),
+            id = UUID.randomUUID().toString(),
             type = notification.type,
             title = notification.title,
             body = notification.body,

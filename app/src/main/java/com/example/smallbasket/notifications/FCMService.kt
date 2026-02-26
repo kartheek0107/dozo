@@ -14,7 +14,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.smallbasket.R
 import com.example.smallbasket.Homepage
-import com.example.smallbasket.RequestActivity
 import com.example.smallbasket.RequestDetailActivity
 import com.example.smallbasket.MyLogsActivity
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -97,15 +96,26 @@ class FCMService : FirebaseMessagingService() {
             else -> CHANNEL_GENERAL
         }
 
-        // Create the appropriate intent based on notification type
+        // FIX: Create the appropriate intent based on notification type.
+        //
+        // Previously, tapping a "new_request" system notification opened RequestActivity
+        // (the full requests list), while tapping the same notification type inside
+        // NotificationActivity navigated to RequestDetailActivity (the specific order).
+        // This inconsistency was confusing — both paths now open RequestDetailActivity
+        // so the user sees the specific order they were notified about.
         val intent = when (data.type) {
             "new_request" -> {
-                Intent(this, RequestActivity::class.java).apply {
-                    putExtra("REQUEST_ID", data.orderId)
-                    putExtra("PICKUP_AREA", data.pickupArea)
-                    putExtra("DROP_AREA", data.dropArea)
-                    putExtra("REWARD", data.reward)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                // FIX: was RequestActivity — now consistent with in-app navigation
+                if (!data.orderId.isNullOrEmpty()) {
+                    Intent(this, RequestDetailActivity::class.java).apply {
+                        putExtra("order_id", data.orderId)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                } else {
+                    // Fallback to homepage if no order_id available
+                    Intent(this, Homepage::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
                 }
             }
             "request_accepted", "request_completed", "request_cancelled" -> {
