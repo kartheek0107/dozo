@@ -38,25 +38,16 @@ class NotificationManager private constructor(private val context: Context) {
             }
         }
 
-        /**
-         * Save FCM token to SharedPreferences (static method for FCMService)
-         */
         fun saveFCMToken(context: Context, token: String) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().putString(KEY_FCM_TOKEN, token).apply()
             Log.d(TAG, "💾 FCM token saved locally: ${token.take(20)}...")
         }
 
-        /**
-         * Save a notification to history (static method for FCMService)
-         */
         fun saveNotification(context: Context, notification: NotificationData) {
             getInstance(context).saveNotificationToHistory(notification)
         }
 
-        /**
-         * Initialize FCM (static method for FCMService)
-         */
         fun initialize(context: Context) {
             getInstance(context).initialize()
         }
@@ -67,9 +58,17 @@ class NotificationManager private constructor(private val context: Context) {
 
     /**
      * Create all notification channels.
-     * Must be called at app startup (in Application.onCreate) so channels exist
-     * before any FCM message arrives — otherwise Android 8+ silently drops
-     * background notifications even when FCM reports success.
+     *
+     * FIX: Channel IDs are suffixed with "_v2".
+     *
+     * Android channel importance is WRITE-ONCE per device. Once a channel is registered,
+     * calling createNotificationChannel again with a higher importance does nothing — the OS
+     * silently ignores the upgrade. The only safe fix is a new channel ID the device has
+     * never seen before. "_v2" achieves this without breaking anything else.
+     *
+     * FCMService.CHANNEL_* constants are the single source of truth — both this class and
+     * FCMService read from those constants, so the channel ID used when building the
+     * notification always matches the channel ID registered here.
      */
     fun createChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -81,7 +80,7 @@ class NotificationManager private constructor(private val context: Context) {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                 .build()
 
-            // Channel 1: New Delivery Requests (HIGH priority)
+            // Channel 1: New Delivery Requests — IMPORTANCE_HIGH required for heads-up banner
             val channelNewRequests = NotificationChannel(
                 FCMService.CHANNEL_NEW_REQUESTS,
                 "New Delivery Requests",
@@ -94,13 +93,16 @@ class NotificationManager private constructor(private val context: Context) {
                 vibrationPattern = longArrayOf(0, 250, 200, 250)
                 setSound(soundUri, audioAttributes)
                 setShowBadge(true)
+                // FIX: PUBLIC so notification content shows on lock screen without unlock
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
 
-            // Channel 2: Order Updates (DEFAULT priority)
+            // Channel 2: Order Updates — bumped to IMPORTANCE_HIGH.
+            // Was IMPORTANCE_DEFAULT which silently blocks heads-up banners on all Android 8+ devices.
             val channelOrderUpdates = NotificationChannel(
                 FCMService.CHANNEL_ORDER_UPDATES,
                 "Order Updates",
-                AndroidNotificationManager.IMPORTANCE_DEFAULT
+                AndroidNotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Updates about your orders (accepted, completed, cancelled)"
                 enableLights(true)
@@ -109,9 +111,10 @@ class NotificationManager private constructor(private val context: Context) {
                 vibrationPattern = longArrayOf(0, 200, 150, 200)
                 setSound(soundUri, audioAttributes)
                 setShowBadge(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
 
-            // Channel 3: General Notifications (LOW priority)
+            // Channel 3: General — LOW priority, no heads-up needed
             val channelGeneral = NotificationChannel(
                 FCMService.CHANNEL_GENERAL,
                 "General Notifications",
@@ -125,14 +128,10 @@ class NotificationManager private constructor(private val context: Context) {
             nm.createNotificationChannel(channelOrderUpdates)
             nm.createNotificationChannel(channelGeneral)
 
-            Log.d(TAG, "✅ Notification channels created")
+            Log.d(TAG, "✅ Notification channels created (v2)")
         }
     }
 
-    /**
-     * Initialize FCM and register token with backend.
-     * Call this after successful login.
-     */
     fun initialize() {
         Log.d(TAG, "=== Initializing FCM ===")
 
@@ -145,26 +144,16 @@ class NotificationManager private constructor(private val context: Context) {
             val token = task.result
             Log.d(TAG, "✅ FCM Token retrieved: ${token.take(20)}...")
 
-            // Save token locally
             saveFCMToken(context, token)
-
-            // Register with backend
             registerTokenWithBackend(token)
         }
     }
 
-    /**
-     * Get saved FCM token
-     */
     fun getFCMToken(): String? {
         return getPrefs().getString(KEY_FCM_TOKEN, null)
     }
 
-    /**
-     * ✅ FIXED: Register FCM token with backend using RetrofitClient
-     */
     private fun registerTokenWithBackend(token: String) {
-        // Get Firebase ID token
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
             Log.w(TAG, "⚠️ User not logged in, skipping backend registration")
@@ -179,24 +168,18 @@ class NotificationManager private constructor(private val context: Context) {
                 val response = api.registerFCMToken(request)
 
                 if (response.isSuccessful) {
-                    val body = response.body()
                     Log.d(TAG, "✅ FCM token registered with backend successfully")
-                    Log.d(TAG, "  Response: ${body?.message}")
+                    Log.d(TAG, "  Response: ${response.body()?.message}")
                 } else {
-                    val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "❌ Backend registration failed: ${response.code()}")
-                    Log.e(TAG, "  Error: $errorBody")
+                    Log.e(TAG, "  Error: ${response.errorBody()?.string()}")
                 }
-
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Exception registering token with backend", e)
             }
         }
     }
 
-    /**
-     * ✅ FIXED: Unregister FCM token from backend using RetrofitClient
-     */
     fun unregisterToken() {
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
@@ -216,32 +199,22 @@ class NotificationManager private constructor(private val context: Context) {
                 } else {
                     Log.e(TAG, "❌ Backend unregister failed: ${response.code()}")
                 }
-
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error unregistering token", e)
             } finally {
-                // Clear local data regardless of backend result
                 clearLocalData()
             }
         }
     }
 
-    /**
-     * Clear all local notification data
-     */
     private fun clearLocalData() {
-        val prefs = getPrefs()
-        prefs.edit().clear().apply()
+        getPrefs().edit().clear().apply()
         Log.d(TAG, "🗑️ Local notification data cleared")
     }
 
     /**
-     * Save a notification to history.
-     *
-     * FIX: Notification ID now uses UUID.randomUUID() instead of
-     * System.currentTimeMillis().toString(). Back-to-back FCM messages
-     * arriving within the same millisecond would previously get the same ID,
-     * causing one to silently overwrite the other in SharedPreferences.
+     * Save notification to history.
+     * Uses UUID instead of currentTimeMillis to prevent ID collisions on rapid FCM messages.
      */
     fun saveNotificationToHistory(notification: NotificationData) {
         val prefs = getPrefs()
@@ -249,7 +222,6 @@ class NotificationManager private constructor(private val context: Context) {
         val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
         val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
 
-        // FIX: Use UUID to guarantee uniqueness even under rapid fire messages
         val savedNotification = SavedNotification(
             id = UUID.randomUUID().toString(),
             type = notification.type,
@@ -260,29 +232,22 @@ class NotificationManager private constructor(private val context: Context) {
             isRead = false,
             priority = notification.priority
         )
-        notifications.add(0, savedNotification) // Add to beginning
+        notifications.add(0, savedNotification)
 
         Log.d(TAG, "💾 Saving notification: ${notification.title}")
         Log.d(TAG, "  Type: ${notification.type}")
         Log.d(TAG, "  Order ID: ${notification.orderId}")
 
-        // Keep only last MAX_NOTIFICATIONS
         val trimmedNotifications = if (notifications.size > MAX_NOTIFICATIONS) {
             notifications.take(MAX_NOTIFICATIONS).toMutableList()
         } else {
             notifications
         }
 
-        // Save back
-        val updatedJson = gson.toJson(trimmedNotifications)
-        prefs.edit().putString(KEY_NOTIFICATIONS, updatedJson).apply()
-
+        prefs.edit().putString(KEY_NOTIFICATIONS, gson.toJson(trimmedNotifications)).apply()
         Log.d(TAG, "💾 Notification saved to history (total: ${trimmedNotifications.size})")
     }
 
-    /**
-     * Get all saved notifications
-     */
     fun getNotifications(): List<SavedNotification> {
         val prefs = getPrefs()
         val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
@@ -290,86 +255,52 @@ class NotificationManager private constructor(private val context: Context) {
         return gson.fromJson(notificationsJson, type) ?: emptyList()
     }
 
-    /**
-     * Get all saved notifications (alias for backward compatibility)
-     */
     fun getSavedNotifications(): List<SavedNotification> {
         return getNotifications()
     }
 
-    /**
-     * Mark a notification as read
-     */
     fun markAsRead(notificationId: String) {
         val prefs = getPrefs()
         val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
         val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
         val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
 
-        // Find and update
         val updated = notifications.map {
             if (it.id == notificationId) it.copy(isRead = true) else it
         }
 
-        // Save back
-        val updatedJson = gson.toJson(updated)
-        prefs.edit().putString(KEY_NOTIFICATIONS, updatedJson).apply()
-
+        prefs.edit().putString(KEY_NOTIFICATIONS, gson.toJson(updated)).apply()
         Log.d(TAG, "✅ Notification marked as read: $notificationId")
     }
 
-    /**
-     * Mark all notifications as read
-     */
     fun markAllAsRead() {
         val prefs = getPrefs()
         val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
         val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
         val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
 
-        // Mark all as read
         val updated = notifications.map { it.copy(isRead = true) }
-
-        // Save back
-        val updatedJson = gson.toJson(updated)
-        prefs.edit().putString(KEY_NOTIFICATIONS, updatedJson).apply()
-
+        prefs.edit().putString(KEY_NOTIFICATIONS, gson.toJson(updated)).apply()
         Log.d(TAG, "✅ All notifications marked as read")
     }
 
-    /**
-     * Get count of unread notifications
-     */
     fun getUnreadCount(): Int {
-        val notifications = getNotifications()
-        return notifications.count { !it.isRead }
+        return getNotifications().count { !it.isRead }
     }
 
-    /**
-     * Delete a notification
-     */
     fun deleteNotification(notificationId: String) {
         val prefs = getPrefs()
         val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
         val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
         val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
 
-        // Remove notification
         val updated = notifications.filter { it.id != notificationId }
-
-        // Save back
-        val updatedJson = gson.toJson(updated)
-        prefs.edit().putString(KEY_NOTIFICATIONS, updatedJson).apply()
-
+        prefs.edit().putString(KEY_NOTIFICATIONS, gson.toJson(updated)).apply()
         Log.d(TAG, "🗑️ Notification deleted: $notificationId")
     }
 
-    /**
-     * Clear all notifications
-     */
     fun clearAllNotifications() {
-        val prefs = getPrefs()
-        prefs.edit().putString(KEY_NOTIFICATIONS, "[]").apply()
+        getPrefs().edit().putString(KEY_NOTIFICATIONS, "[]").apply()
         Log.d(TAG, "🗑️ All notifications cleared")
     }
 
