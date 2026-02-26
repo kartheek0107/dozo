@@ -14,7 +14,6 @@ import com.example.smallbasket.models.FCMTokenRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,20 +55,31 @@ class NotificationManager private constructor(private val context: Context) {
     private val gson = Gson()
     private val api = RetrofitClient.apiService
 
-    /**
-     * Create all notification channels.
-     *
-     * FIX: Channel IDs are suffixed with "_v2".
-     *
-     * Android channel importance is WRITE-ONCE per device. Once a channel is registered,
-     * calling createNotificationChannel again with a higher importance does nothing — the OS
-     * silently ignores the upgrade. The only safe fix is a new channel ID the device has
-     * never seen before. "_v2" achieves this without breaking anything else.
-     *
-     * FCMService.CHANNEL_* constants are the single source of truth — both this class and
-     * FCMService read from those constants, so the channel ID used when building the
-     * notification always matches the channel ID registered here.
-     */
+    // ✅ FIX: Named helper functions using Array deserialization instead of
+    // anonymous TypeToken subclasses. Anonymous TypeToken subclasses are collapsed
+    // by R8 in release builds, causing "Class cannot be cast to ParameterizedType".
+    // Array<T>::class.java is a plain class reference — R8 never touches it.
+
+    private fun jsonToMutableNotificationList(json: String): MutableList<SavedNotification> {
+        return try {
+            gson.fromJson(json, Array<SavedNotification>::class.java)
+                ?.toMutableList() ?: mutableListOf()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deserializing notifications", e)
+            mutableListOf()
+        }
+    }
+
+    private fun jsonToNotificationList(json: String): List<SavedNotification> {
+        return try {
+            gson.fromJson(json, Array<SavedNotification>::class.java)
+                ?.toList() ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deserializing notifications", e)
+            emptyList()
+        }
+    }
+
     fun createChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as AndroidNotificationManager
@@ -80,7 +90,6 @@ class NotificationManager private constructor(private val context: Context) {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                 .build()
 
-            // Channel 1: New Delivery Requests — IMPORTANCE_HIGH required for heads-up banner
             val channelNewRequests = NotificationChannel(
                 FCMService.CHANNEL_NEW_REQUESTS,
                 "New Delivery Requests",
@@ -93,12 +102,9 @@ class NotificationManager private constructor(private val context: Context) {
                 vibrationPattern = longArrayOf(0, 250, 200, 250)
                 setSound(soundUri, audioAttributes)
                 setShowBadge(true)
-                // FIX: PUBLIC so notification content shows on lock screen without unlock
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
 
-            // Channel 2: Order Updates — bumped to IMPORTANCE_HIGH.
-            // Was IMPORTANCE_DEFAULT which silently blocks heads-up banners on all Android 8+ devices.
             val channelOrderUpdates = NotificationChannel(
                 FCMService.CHANNEL_ORDER_UPDATES,
                 "Order Updates",
@@ -114,7 +120,6 @@ class NotificationManager private constructor(private val context: Context) {
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
 
-            // Channel 3: General — LOW priority, no heads-up needed
             val channelGeneral = NotificationChannel(
                 FCMService.CHANNEL_GENERAL,
                 "General Notifications",
@@ -212,15 +217,12 @@ class NotificationManager private constructor(private val context: Context) {
         Log.d(TAG, "🗑️ Local notification data cleared")
     }
 
-    /**
-     * Save notification to history.
-     * Uses UUID instead of currentTimeMillis to prevent ID collisions on rapid FCM messages.
-     */
     fun saveNotificationToHistory(notification: NotificationData) {
         val prefs = getPrefs()
-        val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
-        val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
-        val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
+        // ✅ FIX: Use array-based helper instead of anonymous TypeToken
+        val notifications = jsonToMutableNotificationList(
+            prefs.getString(KEY_NOTIFICATIONS, "[]") ?: "[]"
+        )
 
         val savedNotification = SavedNotification(
             id = UUID.randomUUID().toString(),
@@ -250,9 +252,10 @@ class NotificationManager private constructor(private val context: Context) {
 
     fun getNotifications(): List<SavedNotification> {
         val prefs = getPrefs()
-        val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
-        val type = object : TypeToken<List<SavedNotification>>() {}.type
-        return gson.fromJson(notificationsJson, type) ?: emptyList()
+        // ✅ FIX: Use array-based helper instead of anonymous TypeToken
+        return jsonToNotificationList(
+            prefs.getString(KEY_NOTIFICATIONS, "[]") ?: "[]"
+        )
     }
 
     fun getSavedNotifications(): List<SavedNotification> {
@@ -261,9 +264,10 @@ class NotificationManager private constructor(private val context: Context) {
 
     fun markAsRead(notificationId: String) {
         val prefs = getPrefs()
-        val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
-        val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
-        val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
+        // ✅ FIX: Use array-based helper instead of anonymous TypeToken
+        val notifications = jsonToMutableNotificationList(
+            prefs.getString(KEY_NOTIFICATIONS, "[]") ?: "[]"
+        )
 
         val updated = notifications.map {
             if (it.id == notificationId) it.copy(isRead = true) else it
@@ -275,9 +279,10 @@ class NotificationManager private constructor(private val context: Context) {
 
     fun markAllAsRead() {
         val prefs = getPrefs()
-        val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
-        val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
-        val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
+        // ✅ FIX: Use array-based helper instead of anonymous TypeToken
+        val notifications = jsonToMutableNotificationList(
+            prefs.getString(KEY_NOTIFICATIONS, "[]") ?: "[]"
+        )
 
         val updated = notifications.map { it.copy(isRead = true) }
         prefs.edit().putString(KEY_NOTIFICATIONS, gson.toJson(updated)).apply()
@@ -290,9 +295,10 @@ class NotificationManager private constructor(private val context: Context) {
 
     fun deleteNotification(notificationId: String) {
         val prefs = getPrefs()
-        val notificationsJson = prefs.getString(KEY_NOTIFICATIONS, "[]")
-        val type = object : TypeToken<MutableList<SavedNotification>>() {}.type
-        val notifications = gson.fromJson<MutableList<SavedNotification>>(notificationsJson, type)
+        // ✅ FIX: Use array-based helper instead of anonymous TypeToken
+        val notifications = jsonToMutableNotificationList(
+            prefs.getString(KEY_NOTIFICATIONS, "[]") ?: "[]"
+        )
 
         val updated = notifications.filter { it.id != notificationId }
         prefs.edit().putString(KEY_NOTIFICATIONS, gson.toJson(updated)).apply()
