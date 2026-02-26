@@ -19,8 +19,20 @@
 -keepattributes InnerClasses
 
 # ============================================
-# RETROFIT
+# RETROFIT — CRITICAL FIX
 # ============================================
+# ✅ Keep the ApiService interface itself with ALL method signatures
+# Previous rule used 'class *' which does NOT match interfaces — this was
+# the root cause of every "Class cannot be cast to ParameterizedType" crash.
+# Retrofit uses reflection on interface method return types (e.g. Response<Order>)
+# and R8 was stripping those generic signatures because the rule never matched.
+-keep interface com.example.smallbasket.api.ApiService { *; }
+
+# ✅ Covers any other interfaces with Retrofit annotations
+-keep,allowobfuscation,allowshrinking interface * {
+    @retrofit2.http.* <methods>;
+}
+
 -keep class retrofit2.** { *; }
 -keepclasseswithmembers class * {
     @retrofit2.http.* <methods>;
@@ -38,7 +50,6 @@
 -keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
-# Prevent R8 from removing anonymous TypeToken subclasses
 -keepclassmembers class * extends com.google.gson.TypeAdapter { *; }
 -keepclassmembers class * implements com.google.gson.TypeAdapterFactory { *; }
 -keepclassmembers class * implements com.google.gson.JsonSerializer { *; }
