@@ -1,78 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F9FAFB">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#F9FAFB"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
-        android:id="@+id/offlineHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center"
-        android:padding="24dp"
-        app:layout_constraintTop_toTopOf="parent">
+        android:paddingTop="80dp"
+        android:paddingBottom="32dp"
+        android:paddingHorizontal="24dp">
 
-        <ImageView
+        <!-- Logo matching Login Activity -->
+        <androidx.cardview.widget.CardView
             android:layout_width="80dp"
             android:layout_height="80dp"
-            android:src="@drawable/ic_logo"
-            app:tint="#D1D5DB"
-            android:layout_marginBottom="16dp"/>
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="40dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#14B8A6">
 
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_logo"
+                android:contentDescription="@string/logo"
+                app:tint="#FFFFFF" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- Dynamic Title -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="You're Offline"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/offline_title"
             android:textSize="24sp"
             android:textStyle="bold"
-            android:textColor="#111827" />
+            android:textColor="#111827"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="4dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Check your internet connection or play the Dino game while you wait!"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/offline_message"
             android:textSize="14sp"
             android:textColor="#6B7280"
-            android:gravity="center"
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
+            android:layout_marginBottom="40dp" />
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/gameCard"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_margin="24dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
-        app:layout_constraintTop_toBottomOf="@id/offlineHeader"
-        app:layout_constraintBottom_toTopOf="@id/retryButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <WebView
-            android:id="@+id/webViewDino"
+        <!-- Main Content Card matching Login Form Card style -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/gameCard"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="300dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#FFFFFF">
 
-        <ProgressBar
-            android:id="@+id/gameLoader"
-            android:layout_width="wrap_content"
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="4dp">
+
+                <WebView
+                    android:id="@+id/webViewDino"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <ProgressBar
+                    android:id="@+id/gameLoader"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="#14B8A6" />
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Primary Action Button matching Login button style -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/retryButton"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
-    </androidx.cardview.widget.CardView>
+            android:backgroundTint="#14B8A6"
+            android:paddingVertical="14dp"
+            android:text="@string/retry_connection"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:cornerRadius="16dp"
+            android:layout_marginBottom="24dp" />
 
-    <Button
-        android:id="@+id/retryButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        android:text="Retry Connection"
-        android:backgroundTint="#14B8A6"
-        android:textColor="#FFFFFF"
-        android:padding="16dp"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        <!-- Divider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#E5E7EB" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/status_label"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp"
+                android:paddingHorizontal="16dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#E5E7EB" />
+        </LinearLayout>
+
+        <!-- Information Note -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/info_field_bg"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/offline_mode_active"
+                android:textSize="13sp"
+                android:textColor="#6B7280"
+                android:gravity="center" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
