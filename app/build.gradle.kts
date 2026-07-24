@@ -20,15 +20,15 @@ if (secretsPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.smallbasket"
-    compileSdk = 34
+    namespace = "com.smallbasket.dozo"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.smallbasket"
+        applicationId = "com.smallbasket.dozo"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 8
-        versionName = "2.0.4"
+        targetSdk = 35
+        versionCode = 10
+        versionName = "2.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -88,6 +88,12 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
@@ -132,7 +138,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     // MapLibre
-    implementation("org.maplibre.gl:android-sdk:11.8.1")
+    implementation("org.maplibre.gl:android-sdk:13.3.0")
     implementation("org.maplibre.gl:android-plugin-annotation-v9:1.0.0")
 
     // RecyclerView + CardView

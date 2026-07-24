@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Small Basket"
+rootProject.name = "DOZO"
 include(":app")
  
