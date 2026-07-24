@@ -2,15 +2,6 @@
 
 DOZO is a modern, security-focused Android application designed with a unique **Brutalist UI** aesthetic. It combines essential utility with an engaging user experience, featuring offline capabilities and robust data protection.
 
-## ✨ Features
-
-- **Brutalist Design**: A bold, high-contrast user interface that stands out.
-- **Offline Dino Game**: Never get bored when you're offline. Play the classic dino run directly in-app.
-- **Secure Authentication**: Integrated with Firebase Auth for reliable and secure user management.
-- **Real-time Notifications**: Powered by Firebase Cloud Messaging (FCM).
-- **Location Awareness**: Efficient location tracking and activity recognition.
-- **Privacy First**: Sensitive data is never logged, and all communications are secured via HTTPS.
-
 ## 🛠 Building from Source
 
 ### Prerequisites
