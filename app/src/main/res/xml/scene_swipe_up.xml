@@ -113,6 +113,28 @@
                 android:alpha="1"
                 android:scaleX="1.0"
                 android:scaleY="1.0"/>
+
+            <!-- Made-with credit fade in (slightly after login button) -->
+            <KeyAttribute
+                app:motionTarget="@id/tvMadeWith"
+                app:framePosition="55"
+                android:alpha="0"
+                android:scaleX="0.9"
+                android:scaleY="0.9"/>
+
+            <KeyAttribute
+                app:motionTarget="@id/tvMadeWith"
+                app:framePosition="80"
+                android:alpha="0.5"
+                android:scaleX="0.95"
+                android:scaleY="0.95"/>
+
+            <KeyAttribute
+                app:motionTarget="@id/tvMadeWith"
+                app:framePosition="100"
+                android:alpha="1"
+                android:scaleX="1.0"
+                android:scaleY="1.0"/>
         </KeyFrameSet>
     </Transition>
 
@@ -191,6 +213,19 @@
             android:scaleX="0.9"
             android:scaleY="0.9"
             android:translationY="100dp"/>
+
+        <Constraint
+            android:id="@id/tvMadeWith"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="24dp"
+            android:alpha="0"
+            android:scaleX="0.9"
+            android:scaleY="0.9"
+            android:translationY="60dp"/>
     </ConstraintSet>
 
     <!-- END STATE - After swipe UP -->
@@ -263,6 +298,19 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginBottom="80dp"
+            android:alpha="1"
+            android:scaleX="1.0"
+            android:scaleY="1.0"
+            android:translationY="0dp"/>
+
+        <Constraint
+            android:id="@id/tvMadeWith"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="24dp"
             android:alpha="1"
             android:scaleX="1.0"
             android:scaleY="1.0"

@@ -104,6 +104,54 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
+                <!-- Earnings Card (Psychological Centerpiece) -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="#14B8A6">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="You will earn"
+                            android:textColor="#E6FFFFFF"
+                            android:textSize="14sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:textAllCaps="true"
+                            android:letterSpacing="0.1" />
+
+                        <TextView
+                            android:id="@+id/tvReward"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="₹150"
+                            android:textColor="#FFFFFF"
+                            android:textSize="42sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-black"
+                            android:layout_marginTop="4dp"
+                            tools:text="₹150" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Delivery Reward"
+                            android:textColor="#B2FFFFFF"
+                            android:textSize="12sp"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
                 <!-- Package Icon and Item Title -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -118,7 +166,7 @@
                         android:layout_height="56dp"
                         app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
-                        app:cardBackgroundColor="#E0F2F1"
+                        app:cardBackgroundColor="#F3F4F6"
                         android:layout_marginEnd="12dp">
 
                         <ImageView
@@ -126,7 +174,7 @@
                             android:layout_height="28dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_package"
-                            app:tint="#14B8A6"
+                            app:tint="#6B7280"
                             android:contentDescription="Package icon" />
                     </androidx.cardview.widget.CardView>
 
@@ -148,16 +196,6 @@
                             android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
                             android:layout_marginBottom="4dp" />
-
-                        <!-- Posted Time -->
-                        <!--                        <TextView-->
-                        <!--                            android:id="@+id/tvPostedTime"-->
-                        <!--                            android:layout_width="wrap_content"-->
-                        <!--                            android:layout_height="wrap_content"-->
-                        <!--                            android:text="Posted 15 minutes ago"-->
-                        <!--                            android:textColor="#6B7280"-->
-                        <!--                            android:textSize="13sp"-->
-                        <!--                            android:fontFamily="sans-serif" />-->
                     </LinearLayout>
                 </LinearLayout>
 
@@ -175,14 +213,6 @@
                     android:background="@drawable/bg_priority_badge"
                     android:layout_marginBottom="16dp"
                     android:visibility="gone">
-
-                    <!--                    <ImageView-->
-                    <!--                        android:layout_width="14dp"-->
-                    <!--                        android:layout_height="14dp"-->
-                    <!--                        android:layout_marginEnd="6dp"-->
-                    <!--                        android:src="@drawable/ic_rupee"-->
-                    <!--                        app:tint="#D97706"-->
-                    <!--                        android:contentDescription="Priority icon" />-->
 
                     <TextView
                         android:id="@+id/tvPriority"
@@ -370,50 +400,6 @@
 
                         <TextView
                             android:id="@+id/tvItemPrice"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="₹150"
-                            android:textColor="#111827"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:fontFamily="sans-serif-medium" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Delivery Fee -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="start"
-                    android:layout_marginBottom="16dp">
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:layout_marginEnd="8dp"
-                        android:layout_marginTop="2dp"
-                        android:src="@drawable/ic_rupee"
-                        app:tint="#6B7280"
-                        android:contentDescription="Price tag icon" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Delivery fee"
-                            android:textColor="#6B7280"
-                            android:textSize="12sp"
-                            android:fontFamily="sans-serif"
-                            android:layout_marginBottom="2dp" />
-
-                        <TextView
-                            android:id="@+id/tvReward"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="₹150"

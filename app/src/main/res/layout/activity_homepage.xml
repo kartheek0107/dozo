@@ -47,7 +47,7 @@
 
                         <LinearLayout
                             android:id="@+id/profile_section"
-                            android:layout_width="201dp"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical">
@@ -80,6 +80,52 @@
                                 android:textColor="#E6FFFFFF"
                                 android:textSize="13sp" />
                         </LinearLayout>
+
+                        <!-- Compact Fitness Dial -->
+                        <FrameLayout
+                            android:id="@+id/fitnessDialContainer"
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:layout_marginEnd="16dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackgroundBorderless">
+
+                            <ProgressBar
+                                android:id="@+id/fitnessProgressBar"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:indeterminate="false"
+                                android:max="5000"
+                                android:progress="0"
+                                android:progressDrawable="@drawable/circle_progress_teal" />
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:gravity="center"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvFitnessDialDistance"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0.0"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="km"
+                                    android:textColor="#E6FFFFFF"
+                                    android:textSize="9sp"
+                                    android:layout_marginTop="-2dp"/>
+                            </LinearLayout>
+                        </FrameLayout>
 
                         <androidx.cardview.widget.CardView
                             android:layout_width="48dp"

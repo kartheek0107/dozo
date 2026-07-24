@@ -11,18 +11,22 @@
     app:layoutDescription="@xml/scene_swipe_up">
 
     <!-- Glass Blur Overlay - MUST BE FIRST -->
+
+    <!-- LARGER Logo for better visual impact -->
+
     <View
         android:id="@+id/glassBlurOverlay"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@drawable/glass_card_bg"
         android:alpha="0"
-        app:layout_constraintTop_toTopOf="parent"
+        android:background="@drawable/glass_card_bg"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
 
-    <!-- LARGER Logo for better visual impact -->
     <ImageView
         android:id="@+id/imgLogo"
         android:layout_width="320dp"
@@ -67,7 +71,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:layout_gravity="center_horizontal"
-                android:src="@drawable/ic_shopping_cart"
+                android:src="@drawable/bg_button_amber"
                 app:tint="#14B8A6"
                 android:layout_marginBottom="16dp"/>
 
@@ -219,7 +223,7 @@
         android:layout_height="wrap_content"
         android:text="@string/get_started"
         android:textAllCaps="false"
-        android:background="@drawable/orange_button"
+        android:background="@drawable/bg_button_amber"
         android:textColor="@android:color/white"
         android:textStyle="bold"
         android:textSize="16sp"
@@ -252,5 +256,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="80dp" />
+
+    <TextView
+        android:id="@+id/tvMadeWith"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Made with ❤️ for IIIT Sonepat"
+        android:textColor="#B3FFFFFF"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-light"
+        android:alpha="0"
+        android:elevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="24dp" />
 
 </androidx.constraintlayout.motion.widget.MotionLayout>

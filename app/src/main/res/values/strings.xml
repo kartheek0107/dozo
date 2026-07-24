@@ -18,6 +18,11 @@
     <string name="get_started">Get Started</string>
     <string name="logo">Logo</string>
 
+    <!-- Forgot Password -->
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="password_reset_email_sent">Password reset email sent. Please check your inbox and your spam folder.</string>
+    <string name="please_enter_email">Please enter your email address to reset password.</string>
+
     <!-- Request Activity Messages -->
     <string name="error_no_internet">No internet connection. Please check your network and try again.</string>
     <string name="error_permission_denied">You don’t have permission to view delivery requests.</string>
@@ -25,6 +30,38 @@
     <string name="error_service_unavailable">We’re having trouble loading requests right now. Please try again later.</string>
     <string name="error_session_expired">Your session has expired. Please log in again.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_too_many_requests">Too many requests. Please wait a moment.</string>
+    <string name="error_not_found">The requested information could not be found.</string>
+    <string name="error_startup_failed">App initialization failed. Please restart.</string>
+    <string name="error_location_setup_failed">Failed to initialize location services.</string>
+    <string name="error_refresh_failed">Failed to refresh data.</string>
+    <string name="error_load_orders_failed">Failed to load orders.</string>
+    <string name="error_load_deliveries_failed">Failed to load deliveries.</string>
+    <string name="error_load_order_details_failed">Failed to load order details.</string>
+    <string name="error_update_status_failed">Failed to update delivery status.</string>
+    <string name="error_fields_required">All fields are required.</string>
+    <string name="error_invalid_email_domain">Please use your official IIIT Sonepat email ID.</string>
+    <string name="error_invalid_phone">Please enter a valid 10-digit mobile number.</string>
+    <string name="error_weak_password">Password must be at least 6 characters.</string>
+    <string name="error_login_failed">Login failed. Please check your credentials.</string>
+    <string name="error_registration_failed">Registration failed. Please try again.</string>
+    <string name="error_name_empty">Name cannot be empty.</string>
+    <string name="error_name_length">Name must be between 2 and 100 characters.</string>
+    <string name="error_phone_empty">Phone number cannot be empty.</string>
+    <string name="error_phone_length">Phone number must be between 10 and 20 characters.</string>
+    <string name="error_phone_invalid">Phone number can only contain digits, spaces, +, and -.</string>
+    <string name="profile_updating">Updating profile…</string>
+    <string name="profile_updated_success">Profile updated successfully!</string>
+    <string name="offline_title">Connection Lost</string>
+    <string name="offline_message">Play Dino Dash while we reconnect you</string>
+    <string name="retry_connection">Retry Connection</string>
+    <string name="status_label">STATUS</string>
+    <string name="offline_mode_active">🦖 OFFLINE_MODE_ACTIVE</string>
+    <string name="error_item_required">Item name is required.</string>
+    <string name="error_pickup_required">Pickup location is required.</string>
+    <string name="error_drop_required">Drop location is required.</string>
+    <string name="error_pickup_area_required">Please select a pickup area.</string>
+    <string name="error_drop_area_required">Please select a drop area.</string>
     <string name="empty_no_requests">No pending delivery requests at the moment.</string>
 
     <!-- Notification Channels -->
@@ -49,6 +86,7 @@
         <item>Bahalgarh</item>
         <item>Sonepat</item>
         <item>TDI</item>
+        <item>IIIT Sonepat</item>
     </string-array>
 
     <string-array name="time_presets">
