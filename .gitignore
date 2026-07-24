@@ -35,3 +35,7 @@ gradle.properties.local
 # IDE-specific files that might contain keys
 .idea/misc.xml
 .idea/gradle.xml
+.idea/planningMode.xml
+
+# Build artifacts
+/app/release/
