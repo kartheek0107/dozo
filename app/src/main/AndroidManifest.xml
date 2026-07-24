@@ -14,16 +14,6 @@
     <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
-    <!-- Foreground service permissions -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"
-        android:minSdkVersion="34" />
-
-    <!-- Background location - NOT USED but declared for future -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"
-        tools:node="remove" />
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -73,6 +63,10 @@
             tools:node="remove" />
 
         <!-- Activities -->
+        <activity
+            android:name=".OfflineActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmallBasket" />
         <activity
             android:name=".MyLogsActivity"
             android:exported="false" />
@@ -128,7 +122,7 @@
             android:enabled="true"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.smallbasket.ACTIVITY_TRANSITION" />
+                <action android:name="com.smallbasket.dozo.ACTIVITY_TRANSITION" />
             </intent-filter>
         </receiver>
 

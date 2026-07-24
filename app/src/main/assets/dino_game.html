@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DOZO Dino Dash</title>
+    <style>
+        :root {
+            --primary-teal: #14B8A6;
+            --accent-amber: #F59E0B;
+            --text-dark: #111827;
+            --bg-light: #FFFFFF;
+            --cloud-color: #F3F4F6;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: white;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #score-board {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary-teal);
+            letter-spacing: 1px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            transition: opacity 0.3s ease;
+        }
+
+        .game-btn {
+            background: var(--primary-teal);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 10px 15px -3px rgba(20, 184, 166, 0.3);
+            cursor: pointer;
+            pointer-events: auto;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transform: scale(1);
+            transition: transform 0.1s active;
+        }
+
+        .game-btn:active {
+            transform: scale(0.95);
+        }
+
+        #game-over-text {
+            color: #EF4444;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 24px;
+            display: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game"></canvas>
+        <div id="ui-layer">
+            <div id="score-board">
+                <span id="score">00000</span>
+            </div>
+        </div>
+
+        <div id="overlay">
+            <div id="game-over-text">DINO_CRASHED</div>
+            <button id="action-btn" class="game-btn" onclick="handleBtnClick()">Start Dash</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const overlay = document.getElementById('overlay');
+        const actionBtn = document.getElementById('action-btn');
+        const gameOverText = document.getElementById('game-over-text');
+
+        let width, height, dino, obstacles, clouds, score, gameActive = false, isGameOver = false, speed, frame;
+
+        const COLORS = {
+            teal: '#14B8A6',
+            amber: '#F59E0B',
+            ground: '#E5E7EB',
+            cloud: '#F3F4F6'
+        };
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            dino = {
+                x: 60,
+                y: height - 100,
+                w: 54,
+                h: 54,
+                dy: 0,
+                jump: -16,
+                grav: 0.85,
+                ground: height - 100,
+                jumping: false
+            };
+
+            obstacles = [];
+            clouds = [];
+            score = 0;
+            speed = 7.5;
+            frame = 0;
+            scoreEl.innerText = "00000";
+
+            // Initial decorative clouds
+            for(let i=0; i<4; i++) spawnCloud(Math.random() * width);
+        }
+
+        // --- DRAWING FUNCTIONS ---
+
+        function drawDino() {
+            const x = dino.x;
+            const y = dino.y;
+            ctx.save();
+            ctx.fillStyle = COLORS.teal;
+
+            // Body - Simplified but characteristic Dino shape
+            // Main body
+            ctx.fillRect(x + 5, y + 15, 35, 25);
+
+            // Neck
+            ctx.fillRect(x + 30, y + 5, 10, 15);
+
+            // Head
+            ctx.fillRect(x + 30, y, 24, 15);
+
+            // Tail
+            ctx.beginPath();
+            ctx.moveTo(x + 5, y + 15);
+            ctx.lineTo(x - 5, y + 25);
+            ctx.lineTo(x + 5, y + 35);
+            ctx.fill();
+
+            // Eye
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(x + 45, y + 4, 4, 4);
+
+            // Legs Animation
+            ctx.fillStyle = COLORS.teal;
+            if (dino.jumping) {
+                ctx.fillRect(x + 10, y + 40, 10, 14);
+                ctx.fillRect(x + 25, y + 40, 10, 14);
+            } else {
+                const legAnim = Math.floor(frame / 6) % 2;
+                ctx.fillRect(x + 10, y + 40, 10, legAnim === 0 ? 14 : 7);
+                ctx.fillRect(x + 25, y + 40, 10, legAnim === 1 ? 14 : 7);
+            }
+            ctx.restore();
+        }
+
+        function drawCactus(ob) {
+            const x = ob.x;
+            const y = ob.y;
+            const w = ob.w;
+            const h = ob.h;
+            ctx.save();
+            ctx.fillStyle = COLORS.amber;
+
+            // Main stem (rounded)
+            ctx.beginPath();
+            ctx.roundRect(x + w*0.35, y, w*0.3, h, 6);
+            ctx.fill();
+
+            // Left arm
+            ctx.beginPath();
+            ctx.roundRect(x, y + h*0.25, w*0.4, h*0.2, 4);
+            ctx.roundRect(x, y + h*0.1, w*0.15, h*0.2, 4);
+            ctx.fill();
+
+            // Right arm
+            ctx.beginPath();
+            ctx.roundRect(x + w*0.6, y + h*0.4, w*0.4, h*0.2, 4);
+            ctx.roundRect(x + w*0.85, y + h*0.2, w*0.15, h*0.2, 4);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function spawnCloud(x = width) {
+            clouds.push({
+                x: x,
+                y: 30 + Math.random() * 120,
+                r: 20 + Math.random() * 20,
+                speed: 0.5 + Math.random() * 1
+            });
+        }
+
+        function drawCloud(c) {
+            ctx.fillStyle = COLORS.cloud;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+            ctx.arc(c.x + c.r, c.y - c.r*0.4, c.r*0.7, 0, Math.PI * 2);
+            ctx.arc(c.x + c.r*1.8, c.y, c.r*0.9, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- GAME LOGIC ---
+
+        function update() {
+            if (!gameActive || isGameOver) return;
+
+            frame++;
+            if (frame % 400 === 0) speed += 0.5;
+
+            // Physics
+            dino.y += dino.dy;
+            if (dino.y < dino.ground) {
+                dino.dy += dino.grav;
+            } else {
+                dino.y = dino.ground;
+                dino.dy = 0;
+                dino.jumping = false;
+            }
+
+            // Environment
+            if (frame % 180 === 0) spawnCloud();
+            clouds.forEach((c, i) => {
+                c.x -= c.speed;
+                if (c.x + 100 < 0) clouds.splice(i, 1);
+            });
+
+            // Obstacles spawning
+            if (frame % (Math.floor(Math.random() * 50) + 70) === 0) {
+                obstacles.push({
+                    x: width,
+                    y: height - 90,
+                    w: 32,
+                    h: 35 + Math.random() * 30
+                });
+            }
+
+            // Move and collision check
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let ob = obstacles[i];
+                ob.x -= speed;
+
+                if (ob.x + ob.w < 0) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreEl.innerText = score.toString().padStart(5, '0');
+                }
+
+                // Tight hitbox check
+                if (dino.x + 15 < ob.x + ob.w &&
+                    dino.x + dino.w - 10 > ob.x &&
+                    dino.y + 10 < ob.y + ob.h &&
+                    dino.y + dino.h - 5 > ob.y) {
+                    endGame();
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Ground line
+            ctx.fillStyle = COLORS.ground;
+            ctx.fillRect(0, height - 50, width, 3);
+
+            clouds.forEach(drawCloud);
+            obstacles.forEach(drawCactus);
+            drawDino();
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // --- INTERACTION ---
+
+        function handleBtnClick() {
+            if (!gameActive || isGameOver) {
+                isGameOver = false;
+                init();
+                gameActive = true;
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            isGameOver = true;
+            gameOverText.style.display = 'block';
+            actionBtn.innerText = 'Retry Dash';
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+            }, 10);
+        }
+
+        function triggerJump() {
+            if (gameActive && !isGameOver && !dino.jumping) {
+                dino.dy = dino.jump;
+                dino.jumping = true;
+            }
+        }
+
+        // Multi-input support
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+                triggerJump();
+            }
+        }, { passive: false });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                triggerJump();
+            }
+        });
+
+        window.addEventListener('resize', init);
+
+        init();
+        loop();
+    </script>
+</body>
+</html>
