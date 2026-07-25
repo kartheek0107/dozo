@@ -2,9 +2,9 @@
 
 ## Reporting Vulnerabilities
 
-If you discover a security vulnerability, please email: security@smallbasket.app
+If you discover a security vulnerability, please email: devteam.dozo@gmail.com
 
-**DO NOT** open a public issue.
+**DO NOT** open a public issue if a security vulnerability is found.
 
 ## Security Measures
 
