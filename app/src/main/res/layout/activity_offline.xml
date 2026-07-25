@@ -53,14 +53,14 @@
             android:text="@string/offline_message"
             android:textSize="14sp"
             android:textColor="#6B7280"
-            android:layout_marginBottom="40dp" />
+            android:layout_marginBottom="60dp" />
 
         <!-- Main Content Card matching Login Form Card style -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/gameCard"
             android:layout_width="match_parent"
             android:layout_height="300dp"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="100dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:cardBackgroundColor="#FFFFFF">
@@ -70,17 +70,11 @@
                 android:layout_height="match_parent"
                 android:padding="4dp">
 
-                <WebView
-                    android:id="@+id/webViewDino"
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/composeViewDino"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
-                <ProgressBar
-                    android:id="@+id/gameLoader"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_gravity="center"
-                    android:indeterminateTint="#14B8A6" />
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -89,6 +83,7 @@
             android:id="@+id/retryButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
             android:backgroundTint="#14B8A6"
             android:paddingVertical="14dp"
             android:text="@string/retry_connection"
@@ -96,55 +91,8 @@
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold"
-            app:cornerRadius="16dp"
-            android:layout_marginBottom="24dp" />
+            app:cornerRadius="16dp" />
 
-        <!-- Divider -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="20dp">
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#E5E7EB" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/status_label"
-                android:textColor="#9CA3AF"
-                android:textSize="12sp"
-                android:paddingHorizontal="16dp" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#E5E7EB" />
-        </LinearLayout>
-
-        <!-- Information Note -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/info_field_bg"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/offline_mode_active"
-                android:textSize="13sp"
-                android:textColor="#6B7280"
-                android:gravity="center" />
-        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

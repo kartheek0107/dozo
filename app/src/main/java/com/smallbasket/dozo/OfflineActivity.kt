@@ -9,11 +9,11 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowInsetsController
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.smallbasket.dozo.databinding.ActivityOfflineBinding
 
 class OfflineActivity : AppCompatActivity() {
@@ -44,7 +44,8 @@ class OfflineActivity : AppCompatActivity() {
             }
         }
 
-        setupWebView()
+        setupGame()
+        setupBackNavigation()
         
         // Primary Action Button matching Login button style
         binding.retryButton.setOnClickListener {
@@ -88,23 +89,28 @@ class OfflineActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupWebView() {
-        binding.webViewDino.apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
-            
-            // Critical fix: Keep background white to match activity
-            setBackgroundColor(Color.WHITE)
+    private fun setupGame() {
+        binding.composeViewDino.apply {
+            // Dispose of the Composition when the view's LifecycleOwner is destroyed
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                DinoGame()
+            }
+        }
+    }
 
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    binding.gameLoader.visibility = View.GONE
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (isNetworkAvailable()) {
+                    isEnabled = false // Disable this callback and let the system handle back
+                    onBackPressedDispatcher.onBackPressed()
+                } else {
+                    // Prevent leaving if still offline, or show a toast
+                    Toast.makeText(this@OfflineActivity, "Please reconnect to continue using DOZO", Toast.LENGTH_SHORT).show()
                 }
             }
-            loadUrl("file:///android_asset/dino_game.html")
-        }
+        })
     }
 
     private fun isNetworkAvailable(): Boolean {
@@ -115,12 +121,4 @@ class OfflineActivity : AppCompatActivity() {
                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
-    override fun onBackPressed() {
-        if (isNetworkAvailable()) {
-            super.onBackPressed()
-        } else {
-            // Prevent leaving if still offline, or show a toast
-            Toast.makeText(this, "Please reconnect to continue using DOZO", Toast.LENGTH_SHORT).show()
-        }
-    }
 }

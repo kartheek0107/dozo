@@ -5,9 +5,9 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="#F9FAFB"
     android:fitsSystemWindows="false"
+    android:orientation="vertical"
     tools:context=".DeliveryConfimationActivity">
 
     <!-- Teal Gradient Header Section -->
@@ -15,13 +15,13 @@
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:background="@drawable/bg_teal_gradient"
-        android:paddingTop="48dp"
-        android:paddingBottom="24dp"
+        android:elevation="4dp"
+        android:orientation="vertical"
         android:paddingStart="24dp"
+        android:paddingTop="48dp"
         android:paddingEnd="24dp"
-        android:elevation="4dp">
+        android:paddingBottom="24dp">
 
         <!-- Title Section -->
         <LinearLayout
@@ -58,40 +58,40 @@
         android:layout_weight="1"
         android:fillViewport="true"
         android:paddingStart="24dp"
-        android:paddingEnd="24dp"
         android:paddingTop="16dp"
+        android:paddingEnd="24dp"
         android:paddingBottom="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center"
+            android:orientation="vertical">
 
             <!-- Status Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="20dp"
-                    android:gravity="center">
+                    android:padding="20dp">
 
                     <!-- Icon -->
                     <androidx.cardview.widget.CardView
                         android:layout_width="80dp"
                         android:layout_height="80dp"
-                        app:cardCornerRadius="40dp"
-                        app:cardElevation="0dp"
+                        android:layout_marginBottom="16dp"
                         app:cardBackgroundColor="#E0F2F1"
-                        android:layout_marginBottom="16dp">
+                        app:cardCornerRadius="40dp"
+                        app:cardElevation="0dp">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -104,21 +104,21 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:fontFamily="sans-serif-medium"
                         android:text="Update Delivery Status"
                         android:textColor="#111827"
                         android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:layout_marginBottom="8dp" />
+                        android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:gravity="center"
                         android:text="Choose the current status of this delivery"
                         android:textColor="#6B7280"
-                        android:textSize="14sp"
-                        android:gravity="center"
-                        android:layout_marginBottom="16dp" />
+                        android:textSize="14sp" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -128,9 +128,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -142,17 +142,18 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
                         android:text="Update Status"
                         android:textColor="#6B7280"
                         android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="16dp"/>
+                        android:textStyle="bold" />
 
                     <!-- Mark as Picked Up Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnMarkPickedUp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
                         android:backgroundTint="#2196F3"
                         android:paddingVertical="14dp"
                         android:text="Mark as Picked Up"
@@ -160,8 +161,7 @@
                         android:textColor="#FFFFFF"
                         android:textSize="15sp"
                         android:textStyle="bold"
-                        app:cornerRadius="16dp"
-                        android:layout_marginBottom="12dp" />
+                        app:cornerRadius="16dp" />
 
                     <!-- Mark as Delivered Button -->
                     <com.google.android.material.button.MaterialButton
