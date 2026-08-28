@@ -1,6 +1,7 @@
 package com.smallbasket.dozo.utils
 
 import android.content.Context
+import android.content.Intent
 import com.smallbasket.dozo.R
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -20,16 +21,31 @@ object ErrorUtils {
         
         val message = error.message ?: ""
         
+        // Check for server sleep indicators (timeout/503/504)
+        if (error is SocketTimeoutException || 
+            message.contains("503") || 
+            message.contains("504") ||
+            message.contains("timeout", ignoreCase = true)) {
+            
+            // Redirect to ServerWakeUpActivity is handled by Interceptor
+            // but we keep this for direct repository calls if any
+            try {
+                val intent = Intent(context, com.smallbasket.dozo.ServerWakeUpActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // Fallback
+            }
+            return "Server is waking up, please wait..."
+        }
+
         return when {
             // Network issues
             error is UnknownHostException || 
-            error is IOException || 
+            error is IOException ||
             message.contains("network", ignoreCase = true) -> 
                 context.getString(R.string.error_no_internet)
-            
-            error is SocketTimeoutException || 
-            message.contains("timeout", ignoreCase = true) ->
-                context.getString(R.string.error_timeout)
             
             // HTTP Status Codes (heuristic mapping)
             message.contains("429") ->
@@ -45,7 +61,6 @@ object ErrorUtils {
             
             message.contains("500") || 
             message.contains("502") || 
-            message.contains("503") ||
             message.contains("server", ignoreCase = true) ->
                 context.getString(R.string.error_service_unavailable)
             

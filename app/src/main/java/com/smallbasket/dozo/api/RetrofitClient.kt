@@ -1,6 +1,7 @@
 package com.smallbasket.dozo.api
 
 import com.smallbasket.dozo.BuildConfig
+import com.smallbasket.dozo.SmallBasketApplication
 import com.google.firebase.auth.FirebaseAuth
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -37,6 +38,8 @@ object RetrofitClient {
      * ✅ SECURE: Get OkHttpClient with proper logging configuration
      */
     private fun getOkHttpClient(): OkHttpClient {
+        val context = SmallBasketApplication.instance.applicationContext
+        
         // ✅ SECURE: Logging level based on build type
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
@@ -105,6 +108,7 @@ object RetrofitClient {
             .readTimeout(ApiConfig.READ_TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(ApiConfig.WRITE_TIMEOUT, TimeUnit.SECONDS)
             .addInterceptor(authInterceptor)
+            .addInterceptor(ServerWakeUpInterceptor(context))
             .addInterceptor(loggingInterceptor)
             .build()
     }

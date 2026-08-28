@@ -500,7 +500,7 @@
         </ScrollView>
     </androidx.cardview.widget.CardView>
 
-    <!-- Accept Delivery Button (Orange like Home page) -->
+    <!-- Action Buttons (Accept/Update Status) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/btnAcceptRequest"
         android:layout_width="0dp"
@@ -527,6 +527,47 @@
             android:background="@android:color/transparent"
             android:textAllCaps="false" />
     </androidx.cardview.widget.CardView>
+
+    <LinearLayout
+        android:id="@+id/layoutDeliveryStatusActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMarkPickedUp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:backgroundTint="#2196F3"
+            android:paddingVertical="14dp"
+            android:text="Mark as Picked Up"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:cornerRadius="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMarkDelivered"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#14B8A6"
+            android:paddingVertical="14dp"
+            android:text="Mark as Delivered"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:cornerRadius="16dp" />
+    </LinearLayout>
 
     <!-- Hidden elements for backward compatibility -->
     <Button

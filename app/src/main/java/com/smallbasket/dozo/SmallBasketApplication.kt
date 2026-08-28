@@ -18,12 +18,16 @@ class SmallBasketApplication : Application() {
     companion object {
         private const val TAG = "SmallBasketApp"
         private const val INITIALIZATION_DELAY = 3000L
+        
+        lateinit var instance: SmallBasketApplication
+            private set
     }
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override  fun onCreate() {
         super.onCreate()
+        instance = this
 
         Log.d(TAG, "SmallBasket Application created")
 

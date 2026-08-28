@@ -170,17 +170,8 @@ class MyLogsActivity : AppCompatActivity() {
     }
 
     private fun navigateToDeliveryDetail(order: Order) {
-        // If it's an accepted/completed delivery, navigate to delivery confirmation
-        if (order.status == "accepted" || order.status == "completed") {
-            val intent = Intent(this, DeliveryConfimationActivity::class.java).apply {
-                putExtra("order_id", order.id)
-                putExtra("title", order.items.joinToString(", "))
-            }
-            startActivity(intent)
-        } else {
-            // Otherwise show request detail with ALL data
-            navigateToRequestDetail(order)
-        }
+        // Aligned with user request: Retain original style of request details for My Deliveries
+        navigateToRequestDetail(order)
     }
 
     // ✅ FIX: Add missing helper function (same as Homepage)

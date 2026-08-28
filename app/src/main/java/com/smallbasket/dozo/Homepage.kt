@@ -187,6 +187,10 @@ class Homepage : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        
+        // Load cached user count immediately
+        loadCachedUserCount()
+
         updateFitnessStats()
 
         try {
@@ -423,6 +427,7 @@ class Homepage : AppCompatActivity() {
 
                     result.onSuccess { count ->
                         Log.d(TAG, "✅ SUCCESS! $count unique devices online")
+                        saveCachedUserCount(count)
                         runOnUiThread {
                             binding.tvOnlineUsers.text = count.toString()
                             onlineUsersSwitcher.displayedChild = 1
@@ -891,6 +896,22 @@ class Homepage : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error updating fitness stats", e)
         }
+    }
+
+    private fun loadCachedUserCount() {
+        val prefs = getSharedPreferences("dozo_prefs", MODE_PRIVATE)
+        val cachedCount = prefs.getInt("online_user_count", 0)
+        if (cachedCount > 0) {
+            runOnUiThread {
+                binding.tvOnlineUsers.text = cachedCount.toString()
+                onlineUsersSwitcher.displayedChild = 1
+            }
+        }
+    }
+
+    private fun saveCachedUserCount(count: Int) {
+        val prefs = getSharedPreferences("dozo_prefs", MODE_PRIVATE)
+        prefs.edit().putInt("online_user_count", count).apply()
     }
 
     override fun onDestroy() {

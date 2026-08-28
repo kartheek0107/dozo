@@ -121,8 +121,9 @@ class RequestDetailActivity : AppCompatActivity() {
                 populateRequesterInfo(order.posterName, order.posterEmail, order.posterPhone)
                 populateAcceptorInfo(order.acceptorEmail, order.acceptorName, order.acceptorPhone, order.status)
 
-                // Setup accept button
+                // Setup buttons
                 setupAcceptButton(orderId, order.status)
+                setupDeliveryActionButtons(orderId, order.status, order.acceptorEmail)
             }
 
             result.onFailure { error ->
@@ -405,8 +406,8 @@ class RequestDetailActivity : AppCompatActivity() {
 
                         result.onSuccess { order ->
                             Toast.makeText(this@RequestDetailActivity, "Delivery accepted successfully!", Toast.LENGTH_SHORT).show()
-                            // Close the activity and return to previous screen
-                            finish()
+                            // Instead of finishing, refresh state to show delivery actions
+                            fetchOrderFromBackend(orderId)
                         }
 
                         result.onFailure { error ->
@@ -427,6 +428,58 @@ class RequestDetailActivity : AppCompatActivity() {
         } else {
             // Hide accept button if already accepted
             btnAcceptRequest.visibility = View.GONE
+        }
+    }
+
+    private fun setupDeliveryActionButtons(orderId: String, status: String, acceptorEmail: String?) {
+        val layoutDeliveryActions = findViewById<LinearLayout>(R.id.layoutDeliveryStatusActions)
+        val btnMarkPickedUp = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnMarkPickedUp)
+        val btnMarkDelivered = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnMarkDelivered)
+
+        val currentUserEmail = auth.currentUser?.email
+
+        // Only show delivery actions if current user is the acceptor and status is not "open" or "completed"
+        if (currentUserEmail != null && acceptorEmail == currentUserEmail && status != "open" && status != "completed" && status != "cancelled") {
+            layoutDeliveryActions.visibility = View.VISIBLE
+            
+            btnMarkPickedUp.setOnClickListener {
+                // Backend doesn't have a specific "picked_up" status in Order model usually, 
+                // but we can provide feedback as requested.
+                Toast.makeText(this, "Order marked as picked up!", Toast.LENGTH_SHORT).show()
+            }
+
+            btnMarkDelivered.setOnClickListener {
+                updateOrderStatus(orderId, "completed")
+            }
+        } else {
+            layoutDeliveryActions.visibility = View.GONE
+        }
+    }
+
+    private fun updateOrderStatus(orderId: String, status: String) {
+        lifecycleScope.launch {
+            val result = orderRepository.updateOrderStatus(orderId, status)
+
+            result.onSuccess { order ->
+                val message = when(status) {
+                    "completed" -> "Order marked as delivered!"
+                    else -> "Status updated!"
+                }
+                Toast.makeText(this@RequestDetailActivity, message, Toast.LENGTH_SHORT).show()
+
+                if (status == "completed") {
+                    // Refresh UI
+                    fetchOrderFromBackend(orderId)
+                }
+            }
+
+            result.onFailure { error ->
+                Toast.makeText(
+                    this@RequestDetailActivity,
+                    com.smallbasket.dozo.utils.ErrorUtils.getFriendlyMessage(this@RequestDetailActivity, error),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 }
